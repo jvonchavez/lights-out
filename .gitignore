@@ -1,0 +1,16 @@
+# Build artifacts
+/bin/
+web/node_modules/
+web/public/sim.wasm
+web/public/wasm_exec.js
+internal/web/dist/*
+!internal/web/dist/.gitkeep
+
+# Balance harness output
+balance*.csv
+
+# Local config
+.env
+
+# macOS
+.DS_Store
