@@ -1,0 +1,946 @@
+{
+  "sim_version": "1.0.0",
+  "seed": 5005,
+  "races": [
+    {
+      "round": 1,
+      "circuit": "Vellmar Straight",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 10,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 1,
+          "grid": 5,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 2,
+          "grid": 1,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 3,
+          "grid": 6,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 4,
+          "grid": 7,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        },
+        {
+          "team_id": 5,
+          "grid": 8,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 6,
+          "grid": 9,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 7,
+          "grid": 3,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 8,
+          "grid": 2,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 9,
+          "grid": 11,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 10,
+          "grid": 4,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "circuit": "Lakeshore Mile",
+      "safety_car": true,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 10,
+          "finish": 11,
+          "dnf": false,
+          "points": 0
+        },
+        {
+          "team_id": 1,
+          "grid": 7,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 2,
+          "grid": 5,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 3,
+          "grid": 11,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 4,
+          "grid": 9,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 5,
+          "grid": 6,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 6,
+          "grid": 8,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 7,
+          "grid": 2,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 8,
+          "grid": 3,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        },
+        {
+          "team_id": 9,
+          "grid": 4,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 10,
+          "grid": 1,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "circuit": "Cape Verrick",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 8,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 1,
+          "grid": 2,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 2,
+          "grid": 7,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 3,
+          "grid": 6,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 4,
+          "grid": 9,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 5,
+          "grid": 4,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 6,
+          "grid": 11,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 7,
+          "grid": 10,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 8,
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 9,
+          "grid": 5,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 10,
+          "grid": 3,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "circuit": "Kestrel Park",
+      "safety_car": true,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 10,
+          "finish": 11,
+          "dnf": false,
+          "points": 0
+        },
+        {
+          "team_id": 1,
+          "grid": 8,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 2,
+          "grid": 6,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 3,
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 4,
+          "grid": 9,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 5,
+          "grid": 3,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 6,
+          "grid": 7,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 7,
+          "grid": 11,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 8,
+          "grid": 2,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 9,
+          "grid": 4,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 10,
+          "grid": 5,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        }
+      ]
+    },
+    {
+      "round": 5,
+      "circuit": "Prairie Ring",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 11,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 1,
+          "grid": 2,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 2,
+          "grid": 3,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 3,
+          "grid": 5,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 4,
+          "grid": 9,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 5,
+          "grid": 4,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 6,
+          "grid": 7,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 7,
+          "grid": 10,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 8,
+          "grid": 6,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 9,
+          "grid": 8,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 10,
+          "grid": 1,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        }
+      ]
+    },
+    {
+      "round": 6,
+      "circuit": "Old Harbour",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 11,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 1,
+          "grid": 9,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 2,
+          "grid": 7,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 3,
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 4,
+          "grid": 8,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        },
+        {
+          "team_id": 5,
+          "grid": 4,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 6,
+          "grid": 5,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 7,
+          "grid": 10,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 8,
+          "grid": 2,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 9,
+          "grid": 6,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 10,
+          "grid": 3,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "circuit": "Costa Nera",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 11,
+          "finish": 11,
+          "dnf": false,
+          "points": 0
+        },
+        {
+          "team_id": 1,
+          "grid": 3,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 2,
+          "grid": 10,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 3,
+          "grid": 8,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 4,
+          "grid": 5,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 5,
+          "grid": 6,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 6,
+          "grid": 7,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 7,
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 8,
+          "grid": 4,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        },
+        {
+          "team_id": 9,
+          "grid": 2,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 10,
+          "grid": 9,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        }
+      ]
+    },
+    {
+      "round": 8,
+      "circuit": "Sable Bay",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 11,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 1,
+          "grid": 5,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        },
+        {
+          "team_id": 2,
+          "grid": 10,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 3,
+          "grid": 6,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 4,
+          "grid": 2,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 5,
+          "grid": 3,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 6,
+          "grid": 9,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 7,
+          "grid": 4,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 8,
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 9,
+          "grid": 8,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 10,
+          "grid": 7,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        }
+      ]
+    },
+    {
+      "round": 9,
+      "circuit": "Mont Aubade",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 11,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 1,
+          "grid": 1,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 2,
+          "grid": 7,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 3,
+          "grid": 2,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 4,
+          "grid": 4,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 5,
+          "grid": 9,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 6,
+          "grid": 10,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        },
+        {
+          "team_id": 7,
+          "grid": 3,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 8,
+          "grid": 5,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 9,
+          "grid": 8,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 10,
+          "grid": 6,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        }
+      ]
+    },
+    {
+      "round": 10,
+      "circuit": "Innsbach",
+      "safety_car": false,
+      "cars": [
+        {
+          "team_id": 0,
+          "grid": 11,
+          "finish": 10,
+          "dnf": false,
+          "points": 1
+        },
+        {
+          "team_id": 1,
+          "grid": 9,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
+          "team_id": 2,
+          "grid": 5,
+          "finish": 7,
+          "dnf": false,
+          "points": 6
+        },
+        {
+          "team_id": 3,
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 4,
+          "grid": 4,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 5,
+          "grid": 3,
+          "finish": 2,
+          "dnf": false,
+          "points": 18
+        },
+        {
+          "team_id": 6,
+          "grid": 7,
+          "finish": 9,
+          "dnf": false,
+          "points": 2
+        },
+        {
+          "team_id": 7,
+          "grid": 10,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 8,
+          "grid": 2,
+          "finish": 3,
+          "dnf": false,
+          "points": 15
+        },
+        {
+          "team_id": 9,
+          "grid": 8,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 10,
+          "grid": 6,
+          "finish": 4,
+          "dnf": false,
+          "points": 12
+        }
+      ]
+    }
+  ],
+  "standings": [
+    {
+      "team_id": 8,
+      "name": "Halcyon Motorsport",
+      "points": 175,
+      "wins": 3,
+      "podiums": 7,
+      "dnfs": 0
+    },
+    {
+      "team_id": 9,
+      "name": "Ironwood GP",
+      "points": 135,
+      "wins": 1,
+      "podiums": 5,
+      "dnfs": 0
+    },
+    {
+      "team_id": 1,
+      "name": "Ardent Racing",
+      "points": 121,
+      "wins": 2,
+      "podiums": 4,
+      "dnfs": 1
+    },
+    {
+      "team_id": 3,
+      "name": "Cinder Motorsport",
+      "points": 107,
+      "wins": 3,
+      "podiums": 4,
+      "dnfs": 1
+    },
+    {
+      "team_id": 10,
+      "name": "Jorvik Racing",
+      "points": 103,
+      "wins": 0,
+      "podiums": 1,
+      "dnfs": 0
+    },
+    {
+      "team_id": 7,
+      "name": "Grosvenor Racing",
+      "points": 99,
+      "wins": 1,
+      "podiums": 4,
+      "dnfs": 2
+    },
+    {
+      "team_id": 5,
+      "name": "Eastgate F1",
+      "points": 93,
+      "wins": 0,
+      "podiums": 4,
+      "dnfs": 2
+    },
+    {
+      "team_id": 4,
+      "name": "Dalgetty Racing",
+      "points": 87,
+      "wins": 0,
+      "podiums": 1,
+      "dnfs": 1
+    },
+    {
+      "team_id": 6,
+      "name": "Fennmoor GP",
+      "points": 51,
+      "wins": 0,
+      "podiums": 0,
+      "dnfs": 0
+    },
+    {
+      "team_id": 2,
+      "name": "Bellweather GP",
+      "points": 31,
+      "wins": 0,
+      "podiums": 0,
+      "dnfs": 0
+    },
+    {
+      "team_id": 0,
+      "name": "Your Team",
+      "points": 5,
+      "wins": 0,
+      "podiums": 0,
+      "dnfs": 2
+    }
+  ],
+  "player": {
+    "team_id": 0,
+    "name": "Your Team",
+    "points": 5,
+    "wins": 0,
+    "podiums": 0,
+    "dnfs": 2
+  },
+  "player_position": 11,
+  "share": "Lights Out · Season 5\nP11 · 5 pts · 2 DNFs\n✖️⬜🏁⬜✖️🏁⬜🏁🏁🏁"
+}
