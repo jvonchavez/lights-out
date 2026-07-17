@@ -19,15 +19,41 @@ const (
 	QualiSigma = Milli(2500) // 2.5 rating points -- M1 GATE
 	RaceSigma  = Milli(1500) // lower: a race averages 50+ laps and regresses
 
-	BaseFailure     = Milli(30)  // 3.0% before any development
-	PressurePerUnit = Milli(250) // per 1000 cumulative perf spend -> +25%
-	ReliabilityGain = Milli(400) // per 1000 spend on reliability -> -40%
+	BaseFailure = Milli(30) // 3.0% before any development
+
+	// PressureQuad is the failure probability added at FULL season spend.
+	// Risk grows with the SQUARE of cumulative development, not linearly.
+	//
+	// This is an M1 finding, not a preference. Under the linear model the
+	// design document specifies, risk and performance are both linear in
+	// spend, so one always dominates globally and there is no interior
+	// optimum: measured across pressure coefficients from 250 to 850,
+	// spending 100% of the budget was optimal every time, even at 4.19
+	// DNFs per 10-race season. A convex cost is what makes "how much
+	// performance will you buy with how much risk" a real question.
+	PressureQuad    = Milli(280)
 	AeroEfficiency  = Milli(300) // aero offsets 30% of the pressure it causes
+
+	// Aero "scales with both" (docs/Game Design.md): rating above the
+	// baseline multiplies the whole weighted performance sum rather than
+	// only adding through its own circuit weight. AeroScale sets the rate,
+	// MaxAeroBonus caps it.
+	//
+	// The cap is what makes the sliders a real decision. Without it, a pure
+	// aero car compounds without limit and simply replaces engine as the
+	// dominant single answer. With it, aero is worth buying up to the cap
+	// and worthless past it, so the interesting question becomes what to do
+	// with the budget that remains.
+	AeroScale    = Milli(12)
+	MaxAeroBonus = Milli(150) // at most +25% performance
 
 	SafetyCarChance    = Milli(250) // 25% per race
 	SafetyCarThreshold = 2 * One    // cars within 2.0 pace may be shuffled
 
-	MaxFailure = Milli(600) // never worse than 60%
+	// A safety rail, not an active constraint: it sits above the failure
+	// chance a full-budget season produces (BaseFailure + PressureQuad) so
+	// that clamping never silently truncates the risk model.
+	MaxFailure = Milli(850) // never worse than 85%
 	MinFailure = Milli(5)   // never better than 0.5%
 )
 

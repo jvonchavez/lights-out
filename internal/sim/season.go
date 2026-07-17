@@ -20,13 +20,27 @@ func GenerateSeason(seed int64) Season {
 		calendar[i], calendar[j] = calendar[j], calendar[i]
 	}
 
+	// The player is drawn from the SAME distribution as the rivals, in team
+	// ID order. This is a balance finding from M1, not an aesthetic choice:
+	// a player pinned to the exact mean has a good average and no ceiling,
+	// because winning a championship means being at the top of the field
+	// and a car with zero variance never gets there. Measured at 100.5
+	// average points but only 1.5% of titles, against a rival on the same
+	// strategy scoring 102.9 for 11.2%.
+	//
+	// Fairness is preserved because the draw is seeded: every player in the
+	// world gets the same car on the same day. Some days it is a good one.
 	teams := make([]Team, 0, TeamCount)
 	teams = append(teams, Team{
-		ID:          0,
-		Name:        "Your Team",
-		Archetype:   "",
-		Start:       Ratings{StartRating, StartRating, StartRating},
-		DriverSkill: 2 * One,
+		ID:        0,
+		Name:      "Your Team",
+		Archetype: "",
+		Start: Ratings{
+			Chassis: StartRating + rng.Normal(StartSpread),
+			Engine:  StartRating + rng.Normal(StartSpread),
+			Aero:    StartRating + rng.Normal(StartSpread),
+		},
+		DriverSkill: 2*One + rng.Normal(One),
 	})
 	for i, name := range rivalNames {
 		teams = append(teams, Team{

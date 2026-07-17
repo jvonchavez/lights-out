@@ -23,7 +23,7 @@ func RunSeason(seed int64, decisions []Decision) (SeasonResult, error) {
 			" decisions, want " + strconv.Itoa(len(season.Calendar)))
 	}
 	for i, d := range decisions {
-		if d.Chassis < 0 || d.Engine < 0 || d.Aero < 0 || d.Reliability < 0 {
+		if d.Chassis < 0 || d.Engine < 0 || d.Aero < 0 {
 			return SeasonResult{}, errors.New("sim: race " + strconv.Itoa(i+1) +
 				" has a negative allocation")
 		}

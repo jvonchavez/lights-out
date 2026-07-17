@@ -10,7 +10,7 @@ import (
 func evenDecisions() []Decision {
 	ds := make([]Decision, RaceCount)
 	for i := range ds {
-		ds[i] = Decision{25, 25, 25, 25}
+		ds[i] = Decision{34, 33, 33}
 	}
 	return ds
 }
@@ -47,9 +47,9 @@ func TestRunSeasonRejectsBadInput(t *testing.T) {
 		{"too many", make([]Decision, RaceCount+1)},
 		{"none", nil},
 		{"negative chassis", decisionsWith(0, Decision{Chassis: -1})},
-		{"negative reliability", decisionsWith(3, Decision{Reliability: -5})},
+		{"negative aero", decisionsWith(3, Decision{Aero: -5})},
 		{"over budget", decisionsWith(0, Decision{Chassis: RaceBudget + 1})},
-		{"over budget in aggregate", decisionsWith(9, Decision{50, 50, 50, 50})},
+		{"over budget in aggregate", decisionsWith(9, Decision{50, 50, 50})},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

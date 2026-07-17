@@ -18,9 +18,7 @@ func drawDecisions(rt *rapid.T) []Decision {
 		e := rapid.IntRange(0, rem).Draw(rt, "engine")
 		rem -= e
 		a := rapid.IntRange(0, rem).Draw(rt, "aero")
-		rem -= a
-		r := rapid.IntRange(0, rem).Draw(rt, "reliability")
-		ds[i] = Decision{Chassis: c, Engine: e, Aero: a, Reliability: r}
+		ds[i] = Decision{Chassis: c, Engine: e, Aero: a}
 	}
 	return ds
 }

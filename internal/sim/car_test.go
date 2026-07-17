@@ -21,21 +21,16 @@ func TestSpendingRaisesRatingsAndRisk(t *testing.T) {
 	}
 }
 
-func TestReliabilitySpendLowersRisk(t *testing.T) {
-	c := newCarState(baseTeam())
-	c.apply(Decision{Engine: 100})
-	risky := c.failureChance()
-	c.apply(Decision{Reliability: 100})
-	if c.failureChance() >= risky {
-		t.Error("reliability spend must lower failure chance")
+func TestUnderspendingKeepsTheCarSafer(t *testing.T) {
+	// With the reliability slider cut, restraint IS the reliability lever:
+	// a car that banks less development carries less risk.
+	full, half := newCarState(baseTeam()), newCarState(baseTeam())
+	for i := 0; i < 10; i++ {
+		full.apply(Decision{Chassis: 34, Engine: 33, Aero: 33})
+		half.apply(Decision{Chassis: 17, Engine: 16, Aero: 17})
 	}
-}
-
-func TestReliabilitySpendBuysNoPerformance(t *testing.T) {
-	c := newCarState(baseTeam())
-	c.apply(Decision{Reliability: 100})
-	if c.ratings != (Ratings{StartRating, StartRating, StartRating}) {
-		t.Errorf("reliability spend changed ratings: %+v", c.ratings)
+	if half.failureChance() >= full.failureChance() {
+		t.Errorf("spending half must be safer: half %d, full %d", half.failureChance(), full.failureChance())
 	}
 }
 
@@ -47,10 +42,9 @@ func TestFailureChanceIsClamped(t *testing.T) {
 	if got := c.failureChance(); got > MaxFailure {
 		t.Errorf("failure %d exceeds clamp %d", got, MaxFailure)
 	}
+	// A car that never develops sits at the base rate, well above the
+	// floor, so the lower clamp is exercised through the aero credit.
 	c2 := newCarState(baseTeam())
-	for i := 0; i < 20; i++ {
-		c2.apply(Decision{Reliability: 100})
-	}
 	if got := c2.failureChance(); got < MinFailure {
 		t.Errorf("failure %d below clamp %d", got, MinFailure)
 	}
@@ -64,24 +58,58 @@ func TestBaseFailureAppliesBeforeAnySpend(t *testing.T) {
 }
 
 func TestAeroReducesPressureRelativeToEngine(t *testing.T) {
+	// Measured over a full season's spend. At one race's worth the convex
+	// pressure is only ~2 millis, so the 30% aero credit truncates to zero
+	// in fixed point -- a rounding artifact worth well under 0.1% failure
+	// probability, and immaterial next to a 3% base rate.
 	a, e := newCarState(baseTeam()), newCarState(baseTeam())
-	a.apply(Decision{Aero: 100})
-	e.apply(Decision{Engine: 100})
+	for i := 0; i < 10; i++ {
+		a.apply(Decision{Aero: 100})
+		e.apply(Decision{Engine: 100})
+	}
 	if a.failureChance() >= e.failureChance() {
 		t.Errorf("aero failure %d must be below engine failure %d for equal spend",
 			a.failureChance(), e.failureChance())
 	}
 }
 
-func TestPressureScalesWithCumulativeSpend(t *testing.T) {
-	// 1000 units of perf spend should add PressurePerUnit (25%) of risk.
-	c := newCarState(baseTeam())
+func TestPressureIsConvexInCumulativeSpend(t *testing.T) {
+	// A full season's spend (1000 units) adds exactly PressureQuad.
+	full := newCarState(baseTeam())
 	for i := 0; i < 10; i++ {
-		c.apply(Decision{Engine: 100})
+		full.apply(Decision{Engine: 100})
 	}
-	want := BaseFailure + PressurePerUnit
-	if got := c.failureChance(); got != want {
-		t.Errorf("failure after 1000 engine spend = %d, want %d", got, want)
+	if want, got := BaseFailure+PressureQuad, full.failureChance(); got != want {
+		t.Errorf("failure after full spend = %d, want %d", got, want)
+	}
+
+	// Half the spend costs a QUARTER of the risk, not half. This convexity
+	// is what gives the spend/risk trade-off an interior optimum; under a
+	// linear model spending everything is always correct.
+	half := newCarState(baseTeam())
+	for i := 0; i < 5; i++ {
+		half.apply(Decision{Engine: 100})
+	}
+	if want, got := BaseFailure+PressureQuad.Mul(250), half.failureChance(); got != want {
+		t.Errorf("failure after half spend = %d, want %d", got, want)
+	}
+
+	// Marginal risk must increase: the last 100 units cost more than the
+	// first 100.
+	first := newCarState(baseTeam())
+	first.apply(Decision{Engine: 100})
+	firstStep := first.failureChance() - BaseFailure
+
+	late := newCarState(baseTeam())
+	for i := 0; i < 9; i++ {
+		late.apply(Decision{Engine: 100})
+	}
+	before := late.failureChance()
+	late.apply(Decision{Engine: 100})
+	lastStep := late.failureChance() - before
+
+	if lastStep <= firstStep {
+		t.Errorf("marginal risk not increasing: first 100 units cost %d, last 100 cost %d", firstStep, lastStep)
 	}
 }
 

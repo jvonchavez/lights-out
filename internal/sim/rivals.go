@@ -5,32 +5,35 @@ package sim
 // player. docs/Game Design.md is explicit about why: an AI that reacted to
 // the player would make the daily seed unfair, because two players making
 // different early choices would face different fields.
+//
+// Each archetype expresses a different bet about where performance comes
+// from. None of them is strictly best; M1 measured the field at roughly
+// 10-14% championships each, with the specialists as the deliberate trap.
 func rivalDecision(t Team, round int, cal []Circuit, budget int) Decision {
 	var d Decision
 	switch t.Archetype {
 	case "aggressive":
-		// Spends heavily and early: high DNF rate, high ceiling.
-		if round < 4 {
-			d = split(budget, 40, 40, 20, 0)
-		} else {
-			d = split(budget, 24, 24, 12, 40)
-		}
+		// Pours everything into raw chassis and engine and neglects aero.
+		// High DNF rate, high ceiling, and blind to the fact that aero
+		// multiplies the whole car rather than only its own term.
+		d = split(budget, 45, 45, 10)
 	case "conservative":
-		// Spreads evenly. Rarely fails, rarely wins.
-		d = split(budget, 25, 25, 25, 25)
+		// Spreads evenly. Rarely fails spectacularly, rarely dominates.
+		d = split(budget, 34, 33, 33)
 	case "specialist":
-		// Pours everything into one area, dominant where it suits.
+		// Pours everything into one area, dominant at circuits that suit it
+		// and badly exposed everywhere else.
 		switch t.ID % 3 {
 		case 0:
-			d = split(budget, 80, 0, 0, 20)
+			d = split(budget, 100, 0, 0)
 		case 1:
-			d = split(budget, 0, 80, 0, 20)
+			d = split(budget, 0, 100, 0)
 		default:
-			d = split(budget, 0, 0, 80, 20)
+			d = split(budget, 0, 0, 100)
 		}
 	case "reactive":
 		// Invests toward whichever archetype dominates the next two
-		// circuits. Clamped at the end of the calendar.
+		// circuits, clamped at the end of the calendar.
 		var wc, we, wa Milli
 		for off := 0; off < 2; off++ {
 			i := round + off
@@ -44,18 +47,16 @@ func rivalDecision(t Team, round int, cal []Circuit, budget int) Decision {
 		}
 		sum := wc + we + wa
 		if sum == 0 { // unreachable with real profiles, but never divide by zero
-			d = split(budget, 25, 25, 25, 25)
+			d = split(budget, 34, 33, 33)
 			break
 		}
-		perf := budget * 80 / 100
 		d = Decision{
-			Chassis:     perf * int(wc) / int(sum),
-			Engine:      perf * int(we) / int(sum),
-			Aero:        perf * int(wa) / int(sum),
-			Reliability: budget - perf,
+			Chassis: budget * int(wc) / int(sum),
+			Engine:  budget * int(we) / int(sum),
+			Aero:    budget * int(wa) / int(sum),
 		}
 	default:
-		d = split(budget, 25, 25, 25, 25)
+		d = split(budget, 34, 33, 33)
 	}
 
 	// Integer division above can leave the budget under-spent. Assign the
@@ -67,13 +68,12 @@ func rivalDecision(t Team, round int, cal []Circuit, budget int) Decision {
 	return d
 }
 
-// split allocates budget by percentage. The percentages should sum to 100;
-// any rounding shortfall is corrected by the caller.
-func split(budget, chassis, engine, aero, reliability int) Decision {
+// split allocates budget by percentage across the three development areas.
+// Any rounding shortfall is corrected by the caller.
+func split(budget, chassis, engine, aero int) Decision {
 	return Decision{
-		Chassis:     budget * chassis / 100,
-		Engine:      budget * engine / 100,
-		Aero:        budget * aero / 100,
-		Reliability: budget * reliability / 100,
+		Chassis: budget * chassis / 100,
+		Engine:  budget * engine / 100,
+		Aero:    budget * aero / 100,
 	}
 }

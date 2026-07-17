@@ -19,7 +19,7 @@ func TestRivalDecisionsSpendExactlyTheBudget(t *testing.T) {
 			if d.Total() != RaceBudget {
 				t.Errorf("%s round %d spent %d, want exactly %d", arch, round, d.Total(), RaceBudget)
 			}
-			if d.Chassis < 0 || d.Engine < 0 || d.Aero < 0 || d.Reliability < 0 {
+			if d.Chassis < 0 || d.Engine < 0 || d.Aero < 0 {
 				t.Errorf("%s round %d has a negative allocation: %+v", arch, round, d)
 			}
 		}
@@ -38,23 +38,21 @@ func TestRivalDecisionsAreDeterministic(t *testing.T) {
 	}
 }
 
-func TestAggressiveFrontLoadsPerformance(t *testing.T) {
+func TestAggressiveNeglectsAero(t *testing.T) {
+	// The aggressive archetype buys raw chassis and engine and is blind to
+	// the fact that aero multiplies the whole car. That blindness is the
+	// point: it is a high-risk, high-ceiling bet that M1 measured as poor.
 	cal := GenerateSeason(3).Calendar
-	tm := Team{ID: 1, Archetype: "aggressive"}
-	early := rivalDecision(tm, 0, cal, RaceBudget)
-	late := rivalDecision(tm, 8, cal, RaceBudget)
-	if early.Reliability != 0 {
-		t.Errorf("aggressive round 1 spent %d on reliability, want 0", early.Reliability)
-	}
-	if late.Reliability <= early.Reliability {
-		t.Error("aggressive must shift toward reliability in the back half")
+	d := rivalDecision(Team{ID: 1, Archetype: "aggressive"}, 0, cal, RaceBudget)
+	if d.Aero >= d.Chassis || d.Aero >= d.Engine {
+		t.Errorf("aggressive should underweight aero: %+v", d)
 	}
 }
 
 func TestConservativeSpreadsEvenly(t *testing.T) {
 	cal := GenerateSeason(4).Calendar
 	d := rivalDecision(Team{ID: 2, Archetype: "conservative"}, 0, cal, RaceBudget)
-	want := Decision{25, 25, 25, 25}
+	want := Decision{34, 33, 33}
 	if d != want {
 		t.Errorf("conservative = %+v, want %+v", d, want)
 	}

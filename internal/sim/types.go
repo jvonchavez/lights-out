@@ -1,29 +1,37 @@
 package sim
 
-// Area names a development area. Reliability buys risk down without adding
-// performance; docs/Game Design.md flags it as an M1 balance question.
+// Area names a development area.
+//
+// There is no reliability area. A fourth "buy the risk back down" slider
+// was specified in docs/Game Design.md as an open question, built, and cut
+// at M1 on the evidence: spending zero on it was optimal at every pressure
+// coefficient tested from 250 to 850 under the linear risk model, and again
+// under the convex one. It was a trap option, and the design document's own
+// instruction was to cut it rather than keep it out of sentiment.
+//
+// Reliability remains in the game as the COST of development, which is what
+// docs/_README.md describes: three sliders, and every point spent on
+// performance costs reliability.
 type Area int
 
 const (
 	AreaChassis Area = iota
 	AreaEngine
 	AreaAero
-	AreaReliability
 	areaCount
 )
 
 // Decision is one race's budget allocation. Every value must be
-// non-negative and the four must sum to at most that race's budget.
+// non-negative and the three must sum to at most that race's budget.
 // Spends are plain unit counts, not Milli.
 type Decision struct {
-	Chassis     int `json:"chassis"`
-	Engine      int `json:"engine"`
-	Aero        int `json:"aero"`
-	Reliability int `json:"reliability"`
+	Chassis int `json:"chassis"`
+	Engine  int `json:"engine"`
+	Aero    int `json:"aero"`
 }
 
 // Total is the budget consumed by this allocation.
-func (d Decision) Total() int { return d.Chassis + d.Engine + d.Aero + d.Reliability }
+func (d Decision) Total() int { return d.Chassis + d.Engine + d.Aero }
 
 // CircuitProfile weights the three performance areas. Chassis, Engine and
 // Aero sum to One.

@@ -19,10 +19,10 @@ var goldenCases = []struct {
 	seed      int64
 	decisions []Decision
 }{
-	{"seed-1001-even", 1001, repeatDecision(Decision{25, 25, 25, 25})},
+	{"seed-1001-even", 1001, repeatDecision(Decision{34, 33, 33})},
 	{"seed-2002-aggressive", 2002, frontLoaded()},
-	{"seed-3003-specialist", 3003, repeatDecision(Decision{Engine: 80, Reliability: 20})},
-	{"seed-4004-reliability", 4004, repeatDecision(Decision{20, 20, 20, 40})},
+	{"seed-3003-specialist", 3003, repeatDecision(Decision{Engine: 100})},
+	{"seed-4004-aeroheavy", 4004, repeatDecision(Decision{20, 20, 60})},
 	{"seed-5005-idle", 5005, repeatDecision(Decision{})},
 }
 
@@ -39,7 +39,7 @@ func frontLoaded() []Decision {
 	ds := make([]Decision, RaceCount)
 	for i := range ds {
 		if i < 3 {
-			ds[i] = Decision{Chassis: 40, Engine: 40, Aero: 20}
+			ds[i] = Decision{Chassis: 50, Engine: 50}
 		}
 	}
 	return ds

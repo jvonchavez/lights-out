@@ -14,7 +14,7 @@ Before each race you receive a fixed development budget and split it across thre
 |---|---|---|
 | **Chassis** | Cornering — dominant at technical circuits | Reliability |
 | **Engine** | Top speed — dominant at power circuits | Reliability, more steeply |
-| **Aero** | Scales with both, and is the only area that *improves* efficiency | Reliability, mildly |
+| **Aero** | Multiplies the whole car, capped at +15%, and is the only area that *improves* efficiency | Reliability, mildly |
 
 Every point spent raises performance and lowers reliability. Reliability failures are catastrophic —
 a DNF scores zero, and there are only 10 races. So the game is a repeated bet: how much performance
@@ -58,6 +58,10 @@ perf = Σ(rating[area] × weight[area]) + driver_skill + N(0, σ)
 your decisions stop mattering; too high and decisions drown in noise. This gets tuned empirically in
 milestone M1, not guessed.
 
+**Settled at M1:** qualifying σ = 2.5 rating points, race σ = 1.5. Both were left at their initial
+values — the sweeps showed the balance problems lay in the reliability and aero models rather than in
+the noise, and changing σ would have masked them rather than fixed them.
+
 **Qualifying** ranks all 11 teams by one `perf` roll. Grid position follows.
 
 **Race** resolves in three phases:
@@ -78,18 +82,80 @@ milestone M1, not guessed.
 
 ## Reliability
 
+> **Revised at M1.** The original model and the fourth slider are recorded at the end of this
+> section, along with the measurements that replaced them.
+
 ```
-failure_probability = base + (cumulative_development_spend × pressure_coefficient) − reliability_investment
+failure_probability = base + (cumulative_development_spend / full_season_spend)² × pressure_quad
+                      − aero_efficiency_credit
 ```
 
 Development spend raises risk permanently, not just for the next race — you are running a highly
 strung car for the rest of the season. This is what stops "spend everything in round 1" from being a
-free win, and it is the number most likely to need retuning after M1.
+free win.
+
+Risk is **convex** in cumulative spend: the first tenth of a season's development is nearly free, the
+last tenth is expensive. Aero is credited back 30% of the pressure its own share of the spending
+caused, which is the sense in which it "improves efficiency".
+
+### What M1 measured, and what changed
+
+**The linear model was degenerate.** Under `base + spend × coefficient`, risk and performance are both
+linear in spend, so one side always dominates globally and there is no interior optimum. Sweeping the
+coefficient from 250 to 850 per 1000 units, spending 100% of the budget was optimal at every value —
+even at 4.19 DNFs per 10-race season. The trade-off the game is built around could not exist in that
+form. Squaring the spend term fixes it.
+
+**The reliability slider was a trap and is cut.** Built as specified, then measured: spending zero on
+it was optimal at every pressure coefficient under the linear model *and* under the convex one, with
+title chance falling monotonically as investment rose (27.0% → 23.9% → 15.4% → 7.5% → 2.5% at 0/10/20/
+30/40% of budget). Reliability costs performance one-for-one while performance compounds across every
+remaining race. The document's own instruction was to cut it rather than keep it out of sentiment, so
+it is cut, and the game is the three sliders `_README.md` always described — with reliability as the
+*cost* of development rather than a purchase.
+
+**The player was drawn at the mean and had no ceiling.** Rivals drew starting ratings from a spread
+while the player was pinned to exactly 50.0; the player scored 100.5 average points against a rival on
+the same strategy scoring 102.9, yet won 1.5% of titles against its 11.2%. A car with no variance
+never reaches the top of the field. The player now draws from the same distribution as the rivals —
+seeded, so every player in the world still gets the same car on the same day.
+
+**Aero now multiplies rather than only adds.** "Scales with both" was implemented as a plain third
+weight, which left performance linear in the ratings and made concentration strictly better than
+spreading — the optimal play collapsed to "everything into whichever area the calendar weights
+highest", and the three sliders stopped being a decision. Aero rating above the baseline now
+multiplies the whole weighted sum, capped at +15%. The cap is what keeps aero from simply replacing
+engine as the single dominant answer, and makes "buy aero to the cap, then read the calendar" the
+strongest line rather than an exploit.
+
+### Final balance, 100,000 seasons × 6 strategies
+
+| Strategy | Titles | Avg pts | Avg finish | Avg DNFs |
+|---|---|---|---|---|
+| aerofirst — aero to the cap early, then the calendar | 18.9% | 115.6 | 4.50 | 1.32 |
+| adaptive — follow the next two circuits | 13.8% | 107.1 | 4.91 | 1.29 |
+| even — equal thirds | 13.0% | 106.0 | 4.95 | 1.27 |
+| specialist — everything into engine | 1.6% | 71.3 | 7.18 | 1.37 |
+| aggressive — chassis and engine, front-loaded, no aero | 0.0% | 38.4 | 9.69 | 0.51 |
+| idle — spend nothing | 0.0% | 20.3 | 10.84 | 0.30 |
+
+No strategy exceeds the ~35% ceiling. The gradient from 0% to 18.9% is wide enough that decisions
+plainly matter, and the 81% of seasons the best line still loses is what keeps a daily seed worth
+replaying.
+
+<details>
+<summary>Original specification, superseded at M1</summary>
+
+```
+failure_probability = base + (cumulative_development_spend × pressure_coefficient) − reliability_investment
+```
 
 A fourth budget option, **reliability investment**, buys the risk back down without adding
 performance. It exists so the player has a way to say "I have a fast car, now let me finish races."
 Whether it earns its place is an M1 balance question — if simulation shows nobody ever picks it, it
 gets cut rather than kept out of sentiment.
+
+</details>
 
 ---
 

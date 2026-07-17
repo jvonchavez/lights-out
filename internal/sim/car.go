@@ -12,7 +12,6 @@ type carState struct {
 	ratings   Ratings
 	perfSpend int // cumulative chassis+engine+aero
 	aeroSpend int // cumulative aero alone, for the efficiency credit
-	relSpend  int // cumulative reliability
 }
 
 func newCarState(t Team) *carState {
@@ -29,7 +28,6 @@ func (c *carState) apply(d Decision) {
 
 	c.perfSpend += d.Chassis + d.Engine + d.Aero
 	c.aeroSpend += d.Aero
-	c.relSpend += d.Reliability
 }
 
 // perf is a performance roll at a circuit: the weighted sum of ratings by
@@ -39,11 +37,32 @@ func (c *carState) apply(d Decision) {
 // and happens EXACTLY ONCE per call -- draw order is the determinism
 // contract, and adding or moving a draw changes every downstream result.
 func (c *carState) perf(p CircuitProfile, sigma Milli, r *RNG) Milli {
-	return c.ratings.Chassis.Mul(p.Chassis) +
+	base := c.ratings.Chassis.Mul(p.Chassis) +
 		c.ratings.Engine.Mul(p.Engine) +
-		c.ratings.Aero.Mul(p.Aero) +
-		c.team.DriverSkill +
-		r.Normal(sigma)
+		c.ratings.Aero.Mul(p.Aero)
+
+	// Aero scales with both: it multiplies the whole weighted sum, not just
+	// its own term. Without this the performance model is linear in the
+	// ratings, concentration always beats spreading, and the optimal play
+	// collapses to "put everything in whichever area the calendar weights
+	// highest" -- which makes the three sliders a non-decision.
+	base += base.Mul(c.aeroBonus())
+
+	return base + c.team.DriverSkill + r.Normal(sigma)
+}
+
+// aeroBonus is the multiplier aero rating above the baseline confers,
+// clamped at MaxAeroBonus. Negative aero (a car below the baseline) confers
+// nothing rather than a penalty.
+func (c *carState) aeroBonus() Milli {
+	above := c.ratings.Aero - StartRating
+	if above <= 0 {
+		return 0
+	}
+	if bonus := above.Mul(AeroScale); bonus < MaxAeroBonus {
+		return bonus
+	}
+	return MaxAeroBonus
 }
 
 // failureChance is the probability this car suffers a DNF, in Milli.
@@ -52,19 +71,27 @@ func (c *carState) perf(p CircuitProfile, sigma Milli, r *RNG) Milli {
 // you are running a highly strung car for the rest of the season. That is
 // what stops "spend everything in round 1" from being a free win.
 //
-// .Mul is right for pressure and relief -- it is the /1000 inside Mul that
-// turns "250 per 1000 units spent" into a probability, so 1000 cumulative
-// perf spend yields 1000 * 250 / 1000 = 250 millis, i.e. 25%.
+// Risk is CONVEX in cumulative spend: the first 100 units cost far less
+// risk than the last 100. Under a linear cost the trade-off has no interior
+// optimum and spending the whole budget is always correct, which makes the
+// central decision a non-decision. See PressureQuad in params.go.
 func (c *carState) failureChance() Milli {
-	pressure := Milli(c.perfSpend).Mul(PressurePerUnit)
+	// A season's full budget is 1000 units, so Milli(perfSpend) already
+	// reads as the fraction of a full season's development spent, with
+	// 1000 units == One. Squaring it gives the convex risk curve.
+	frac := Milli(c.perfSpend)
+	pressure := frac.Mul(frac).Mul(PressureQuad)
 
 	// Aero is the only area that improves efficiency: it is credited back a
-	// share of the pressure its own spend caused.
-	credit := Milli(c.aeroSpend).Mul(PressurePerUnit).Mul(AeroEfficiency)
+	// share of the pressure its own spend caused, in proportion to how much
+	// of the development it represents.
+	var credit Milli
+	if c.perfSpend > 0 {
+		share := Milli(c.aeroSpend).Div(Milli(c.perfSpend))
+		credit = pressure.Mul(share).Mul(AeroEfficiency)
+	}
 
-	relief := Milli(c.relSpend).Mul(ReliabilityGain)
-
-	p := BaseFailure + pressure - credit - relief
+	p := BaseFailure + pressure - credit
 	if p > MaxFailure {
 		return MaxFailure
 	}
