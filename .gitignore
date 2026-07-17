@@ -14,3 +14,8 @@ balance*.csv
 
 # macOS
 .DS_Store
+
+# Compiled command binaries
+/balance
+/simulate
+/server
