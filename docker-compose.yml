@@ -1,0 +1,22 @@
+# Postgres for local development. The service itself runs on the host via
+# `make run`; this file exists so the database is one command away and
+# matches what CI and the integration tests use.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: lightsout
+      POSTGRES_USER: lightsout
+      POSTGRES_PASSWORD: lightsout
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lightsout -d lightsout"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:

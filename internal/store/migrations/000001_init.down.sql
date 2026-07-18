@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS runs_leaderboard;
+DROP TABLE IF EXISTS runs;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS seasons;
