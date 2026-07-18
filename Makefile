@@ -1,17 +1,32 @@
 GOROOT_DIR := $(shell go env GOROOT)
 WASM_OUT   := web/public/sim.wasm
 
-.PHONY: help test test-all parity wasm balance simulate vet clean
+# Colima exposes its Docker socket outside the default location, and its
+# port forwarding does not reach testcontainers' Ryuk reaper. Tests clean up
+# their own containers via t.Cleanup, so the reaper is redundant here.
+# Harmless under Docker Desktop, where DOCKER_HOST is simply ignored.
+COLIMA_SOCK := $(HOME)/.colima/default/docker.sock
+DOCKER_ENV  := $(if $(wildcard $(COLIMA_SOCK)),DOCKER_HOST=unix://$(COLIMA_SOCK) TESTCONTAINERS_RYUK_DISABLED=true,)
+
+.PHONY: help test test-integration test-all parity wasm balance simulate vet clean db db-down
 
 help:
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-16s %s\n", $$1, $$2}'
 
-test: ## Unit, property and golden tests (no Docker required)
-	go test ./... -count=1
+test: ## Fast tests only: unit, property, golden (no Docker)
+	go test -short ./... -count=1
 
-test-all: ## Everything, including Docker-backed integration tests
-	go test ./... -count=1
-	go test -tags=parity ./internal/sim/ -count=1
+test-integration: ## Integration tests against real Postgres in a container
+	$(DOCKER_ENV) go test ./internal/store/... ./internal/api/... -count=1
+
+test-all: parity ## Everything: unit, integration and native/WASM parity
+	$(DOCKER_ENV) go test ./... -count=1
+
+db: ## Start Postgres for local development
+	$(DOCKER_ENV) docker compose up -d db
+
+db-down: ## Stop and remove the development database
+	$(DOCKER_ENV) docker compose down -v
 
 vet: ## go vet
 	go vet ./...
