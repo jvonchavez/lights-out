@@ -96,12 +96,12 @@ type RaceResult struct {
 
 // Standing is a team's season total.
 type Standing struct {
-	TeamID  int `json:"team_id"`
+	TeamID  int    `json:"team_id"`
 	Name    string `json:"name"`
-	Points  int `json:"points"`
-	Wins    int `json:"wins"`
-	Podiums int `json:"podiums"`
-	DNFs    int `json:"dnfs"`
+	Points  int    `json:"points"`
+	Wins    int    `json:"wins"`
+	Podiums int    `json:"podiums"`
+	DNFs    int    `json:"dnfs"`
 }
 
 // SeasonResult is the output of RunSeason. Standings are sorted by points,

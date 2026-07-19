@@ -4,7 +4,7 @@ import "testing"
 
 func TestMilliMul(t *testing.T) {
 	tests := []struct {
-		name    string
+		name       string
 		a, b, want Milli
 	}{
 		{"identity", 1500, One, 1500},
@@ -25,7 +25,7 @@ func TestMilliMul(t *testing.T) {
 
 func TestMilliDiv(t *testing.T) {
 	tests := []struct {
-		name    string
+		name       string
 		a, b, want Milli
 	}{
 		{"identity", 1500, One, 1500},

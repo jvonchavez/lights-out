@@ -71,7 +71,7 @@ func TestCalendarHasNoDuplicates(t *testing.T) {
 func TestDifferentSeedsShuffleTheCalendar(t *testing.T) {
 	same := 0
 	for seed := int64(0); seed < 50; seed++ {
-		if GenerateSeason(seed).Calendar[0].Name == GenerateSeason(seed+1000).Calendar[0].Name {
+		if GenerateSeason(seed).Calendar[0].Name == GenerateSeason(seed + 1000).Calendar[0].Name {
 			same++
 		}
 	}

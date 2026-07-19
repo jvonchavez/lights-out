@@ -31,8 +31,8 @@ const (
 	// spending 100% of the budget was optimal every time, even at 4.19
 	// DNFs per 10-race season. A convex cost is what makes "how much
 	// performance will you buy with how much risk" a real question.
-	PressureQuad    = Milli(280)
-	AeroEfficiency  = Milli(300) // aero offsets 30% of the pressure it causes
+	PressureQuad   = Milli(280)
+	AeroEfficiency = Milli(300) // aero offsets 30% of the pressure it causes
 
 	// Aero "scales with both" (docs/Game Design.md): rating above the
 	// baseline multiplies the whole weighted performance sum rather than
