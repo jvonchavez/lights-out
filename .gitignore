@@ -19,3 +19,9 @@ balance*.csv
 /balance
 /simulate
 /server
+
+# Frontend build output is generated, not committed
+internal/web/dist/*
+!internal/web/dist/.gitkeep
+web/test-results/
+web/playwright-report/
