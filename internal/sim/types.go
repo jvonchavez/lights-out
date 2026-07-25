@@ -107,14 +107,14 @@ type Standing struct {
 // SeasonResult is the output of RunSeason. Standings are sorted by points,
 // then wins, then podiums, then team ID, which is a total order.
 type SeasonResult struct {
-	SimVersion string       `json:"sim_version"`
-	Seed       int64        `json:"seed"`
+	SimVersion string `json:"sim_version"`
+	Seed       int64  `json:"seed"`
 	// Build is the cards the player took, in window order. It is the
 	// artifact the player assembled and the thing worth arguing about.
-	Build      []Card       `json:"build"`
-	Races      []RaceResult `json:"races"`
-	Standings  []Standing   `json:"standings"`
-	Player     Standing     `json:"player"`
-	PlayerPos  int          `json:"player_position"`
-	Share      string       `json:"share"`
+	Build     []Card       `json:"build"`
+	Races     []RaceResult `json:"races"`
+	Standings []Standing   `json:"standings"`
+	Player    Standing     `json:"player"`
+	PlayerPos int          `json:"player_position"`
+	Share     string       `json:"share"`
 }
