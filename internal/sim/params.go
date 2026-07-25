@@ -8,6 +8,16 @@ const (
 	TeamCount  = 11  // the player plus 10 rivals
 	RaceBudget = 100 // budget units available each race
 
+	// Development happens in five windows rather than every race. Each
+	// window deals DealSize cards and the player takes one, so a season is
+	// five clicks. Card costs average ~200 units, keeping a season near the
+	// 1000 units PressureQuad is calibrated against.
+	WindowCount = 5
+	DealSize    = 3
+
+	MinCardCost = 140
+	MaxCardCost = 260
+
 	StartRating = 50 * One // every team starts at 50.0 in each area
 	StartSpread = 4 * One  // rivals vary around it by this sigma
 
@@ -56,6 +66,11 @@ const (
 	MaxFailure = Milli(850) // never worse than 85%
 	MinFailure = Milli(5)   // never better than 0.5%
 )
+
+// WindowRounds are the 0-based rounds a development window precedes: cards
+// are dealt before races 1, 3, 5, 7 and 9, and the intervening races run on
+// whatever the car already is.
+var WindowRounds = [WindowCount]int{0, 2, 4, 6, 8}
 
 // PointsTable is the standard allocation for the top ten finishers.
 var PointsTable = [10]int{25, 18, 15, 12, 10, 8, 6, 4, 2, 1}
