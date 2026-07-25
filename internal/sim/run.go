@@ -36,7 +36,7 @@ func RunSeason(seed int64, decisions []Decision) (SeasonResult, error) {
 
 	// A SECOND RNG, seeded separately from the one GenerateSeason consumed,
 	// so that changing generation logic later cannot shift race outcomes.
-	rng := NewRNG(seed ^ 0x5EED)
+	rng := NewRNG(seed ^ raceSalt)
 
 	cars := make([]*carState, len(season.Teams))
 	for i, t := range season.Teams {
