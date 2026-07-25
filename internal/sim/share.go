@@ -25,8 +25,13 @@ func shareString(seed int64, player Standing, pos int, races []RaceResult) strin
 	b.WriteString(strconv.FormatInt(label, 10))
 	b.WriteByte('\n')
 
+	// "P3 of 11", not "P3". A share string has to carry its own
+	// denominator to be legible to someone who has never played -- which
+	// is what makes "71-11" work and a bare position not.
 	b.WriteByte('P')
 	b.WriteString(strconv.Itoa(pos))
+	b.WriteString(" of ")
+	b.WriteString(strconv.Itoa(TeamCount))
 	b.WriteString(" · ")
 	b.WriteString(strconv.Itoa(player.Points))
 	b.WriteString(" pts")

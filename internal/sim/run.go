@@ -15,22 +15,21 @@ import (
 // iteration order affecting results, no unseeded randomness. That is what
 // makes the leaderboard trustworthy -- a cheater would have to find
 // decisions that genuinely produce a high score, which is just playing well.
-func RunSeason(seed int64, decisions []Decision) (SeasonResult, error) {
+func RunSeason(seed int64, picks []int) (SeasonResult, error) {
 	season := GenerateSeason(seed)
+	deals := DealsFor(seed)
 
-	if len(decisions) != len(season.Calendar) {
-		return SeasonResult{}, errors.New("sim: got " + strconv.Itoa(len(decisions)) +
-			" decisions, want " + strconv.Itoa(len(season.Calendar)))
+	// Validation is now total and trivial: WindowCount integers in range.
+	// Everything else about the season is recomputed from the seed, so
+	// there is nothing else a client could lie about.
+	if len(picks) != WindowCount {
+		return SeasonResult{}, errors.New("sim: got " + strconv.Itoa(len(picks)) +
+			" picks, want " + strconv.Itoa(WindowCount))
 	}
-	for i, d := range decisions {
-		if d.Chassis < 0 || d.Engine < 0 || d.Aero < 0 {
-			return SeasonResult{}, errors.New("sim: race " + strconv.Itoa(i+1) +
-				" has a negative allocation")
-		}
-		if d.Total() > season.Budgets[i] {
-			return SeasonResult{}, errors.New("sim: race " + strconv.Itoa(i+1) +
-				" allocates " + strconv.Itoa(d.Total()) +
-				", budget is " + strconv.Itoa(season.Budgets[i]))
+	for i, p := range picks {
+		if p < 0 || p >= DealSize {
+			return SeasonResult{}, errors.New("sim: window " + strconv.Itoa(i+1) +
+				" picked card " + strconv.Itoa(p) + ", want 0.." + strconv.Itoa(DealSize-1))
 		}
 	}
 
@@ -48,13 +47,21 @@ func RunSeason(seed int64, decisions []Decision) (SeasonResult, error) {
 		standings[i] = Standing{TeamID: t.ID, Name: t.Name}
 	}
 
+	build := make([]Card, 0, WindowCount)
+
 	races := make([]RaceResult, 0, len(season.Calendar))
 	for round, circuit := range season.Calendar {
-		// Development is banked in team ID order: car 0 is the player,
-		// every other car is its archetype's deterministic choice.
-		cars[0].apply(decisions[round])
-		for i := 1; i < len(cars); i++ {
-			cars[i].apply(rivalDecision(cars[i].team, round, season.Calendar, season.Budgets[round]))
+		// Development is banked only at window rounds, in team ID order:
+		// car 0 is the player, every other car is its archetype's
+		// deterministic choice from the same deal.
+		if w, ok := windowAt(round); ok {
+			chosen := deals[w][picks[w]]
+			cars[0].apply(chosen.Effect)
+			build = append(build, chosen)
+			for i := 1; i < len(cars); i++ {
+				j := rivalPick(cars[i].team, deals[w], w, season.Calendar)
+				cars[i].apply(deals[w][j].Effect)
+			}
 		}
 
 		grid := qualify(cars, circuit.Profile, rng)
@@ -103,10 +110,22 @@ func RunSeason(seed int64, decisions []Decision) (SeasonResult, error) {
 	return SeasonResult{
 		SimVersion: Version,
 		Seed:       seed,
+		Build:      build,
 		Races:      races,
 		Standings:  standings,
 		Player:     player,
 		PlayerPos:  playerPos,
 		Share:      shareString(seed, player, playerPos, races),
 	}, nil
+}
+
+// windowAt reports whether a development window precedes this round, and
+// which window it is.
+func windowAt(round int) (int, bool) {
+	for w, r := range WindowRounds {
+		if r == round {
+			return w, true
+		}
+	}
+	return 0, false
 }

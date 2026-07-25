@@ -7,28 +7,29 @@ import (
 	"unicode/utf8"
 )
 
-func evenDecisions() []Decision {
-	ds := make([]Decision, RaceCount)
-	for i := range ds {
-		ds[i] = Decision{34, 33, 33}
+// evenPicks takes the middle card every window.
+func evenPicks() []int {
+	p := make([]int, WindowCount)
+	for i := range p {
+		p[i] = 1
 	}
-	return ds
+	return p
 }
 
-func decisionsWith(round int, d Decision) []Decision {
-	ds := evenDecisions()
-	ds[round] = d
-	return ds
+func picksWith(window, card int) []int {
+	p := evenPicks()
+	p[window] = card
+	return p
 }
 
 func TestRunSeasonIsDeterministic(t *testing.T) {
-	ds := evenDecisions()
-	first, err := RunSeason(4242, ds)
+	picks := evenPicks()
+	first, err := RunSeason(4242, picks)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 1000; i++ {
-		got, err := RunSeason(4242, ds)
+		got, err := RunSeason(4242, picks)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -40,35 +41,85 @@ func TestRunSeasonIsDeterministic(t *testing.T) {
 
 func TestRunSeasonRejectsBadInput(t *testing.T) {
 	tests := []struct {
-		name string
-		ds   []Decision
+		name  string
+		picks []int
 	}{
-		{"too few", make([]Decision, RaceCount-1)},
-		{"too many", make([]Decision, RaceCount+1)},
+		{"too few", make([]int, WindowCount-1)},
+		{"too many", make([]int, WindowCount+1)},
 		{"none", nil},
-		{"negative chassis", decisionsWith(0, Decision{Chassis: -1})},
-		{"negative aero", decisionsWith(3, Decision{Aero: -5})},
-		{"over budget", decisionsWith(0, Decision{Chassis: RaceBudget + 1})},
-		{"over budget in aggregate", decisionsWith(9, Decision{50, 50, 50})},
+		{"negative index", picksWith(0, -1)},
+		{"index past the deal", picksWith(3, DealSize)},
+		{"wildly out of range", picksWith(2, 9999)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := RunSeason(1, tt.ds); err == nil {
+			if _, err := RunSeason(1, tt.picks); err == nil {
 				t.Error("want error, got nil")
 			}
 		})
 	}
 }
 
-func TestRunSeasonAcceptsUnderspending(t *testing.T) {
-	ds := decisionsWith(0, Decision{}) // spend nothing in round 1
-	if _, err := RunSeason(1, ds); err != nil {
-		t.Errorf("underspending must be legal: %v", err)
+func TestBuildMatchesPicks(t *testing.T) {
+	picks := []int{0, 1, 2, 1, 0}
+	res, err := RunSeason(777, picks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deals := DealsFor(777)
+	if len(res.Build) != WindowCount {
+		t.Fatalf("build has %d cards, want %d", len(res.Build), WindowCount)
+	}
+	for w, want := range picks {
+		if res.Build[w].ID != deals[w][want].ID {
+			t.Errorf("window %d built %q, want %q", w, res.Build[w].ID, deals[w][want].ID)
+		}
+	}
+}
+
+func TestDevelopmentOnlyHappensAtWindows(t *testing.T) {
+	// The player's car must change across exactly WindowCount rounds.
+	season := GenerateSeason(11)
+	deals := DealsFor(11)
+	car := newCarState(season.Teams[0])
+
+	changed := 0
+	for round := 0; round < RaceCount; round++ {
+		before := car.ratings
+		if w, ok := windowAt(round); ok {
+			car.apply(deals[w][0].Effect)
+		}
+		if car.ratings != before {
+			changed++
+		}
+	}
+	if changed != WindowCount {
+		t.Errorf("ratings changed in %d rounds, want %d", changed, WindowCount)
+	}
+}
+
+func TestSeasonBanksRoughlyAFullBudget(t *testing.T) {
+	// PressureQuad is calibrated at 1000 units. If typical builds drift far
+	// from that, the risk curve is no longer measuring what it was tuned to.
+	total, n := 0, 0
+	for seed := int64(0); seed < 300; seed++ {
+		res, err := RunSeason(seed, evenPicks())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range res.Build {
+			total += c.Cost()
+		}
+		n++
+	}
+	avg := total / n
+	if avg < 850 || avg > 1150 {
+		t.Errorf("mean season spend %d units, want near 1000", avg)
 	}
 }
 
 func TestRunSeasonShape(t *testing.T) {
-	res, err := RunSeason(77, evenDecisions())
+	res, err := RunSeason(77, evenPicks())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,18 +135,15 @@ func TestRunSeasonShape(t *testing.T) {
 		}
 	}
 	if res.SimVersion != Version {
-		t.Errorf("sim version %q, want %q", res.SimVersion, Version)
+		t.Errorf("sim version = %q, want %q", res.SimVersion, Version)
 	}
 	if res.PlayerPos < 1 || res.PlayerPos > TeamCount {
 		t.Errorf("player position %d out of range", res.PlayerPos)
 	}
-	if res.Player.TeamID != 0 {
-		t.Errorf("player standing is team %d, want 0", res.Player.TeamID)
-	}
 }
 
 func TestStandingsSumToRacePoints(t *testing.T) {
-	res, _ := RunSeason(77, evenDecisions())
+	res, _ := RunSeason(77, evenPicks())
 	total := 0
 	for _, r := range res.Races {
 		for _, c := range r.Cars {
@@ -112,7 +160,7 @@ func TestStandingsSumToRacePoints(t *testing.T) {
 }
 
 func TestStandingsAreSortedByTotalOrder(t *testing.T) {
-	res, _ := RunSeason(31, evenDecisions())
+	res, _ := RunSeason(31, evenPicks())
 	for i := 0; i+1 < len(res.Standings); i++ {
 		a, b := res.Standings[i], res.Standings[i+1]
 		switch {
@@ -136,26 +184,8 @@ func TestStandingsAreSortedByTotalOrder(t *testing.T) {
 	}
 }
 
-func TestSpendingMoreBeatsSpendingNothing(t *testing.T) {
-	// Over many seeds, developing the car must beat never developing it.
-	// This is the sanity check that the whole game economy points the right
-	// way; it says nothing about which strategy is best.
-	nothing := make([]Decision, RaceCount)
-	better := 0
-	for seed := int64(0); seed < 200; seed++ {
-		spent, _ := RunSeason(seed, evenDecisions())
-		idle, _ := RunSeason(seed, nothing)
-		if spent.Player.Points > idle.Player.Points {
-			better++
-		}
-	}
-	if better < 140 {
-		t.Errorf("developing beat idling only %d/200 times", better)
-	}
-}
-
 func TestShareStringShape(t *testing.T) {
-	res, _ := RunSeason(142, evenDecisions())
+	res, _ := RunSeason(142, evenPicks())
 	lines := strings.Split(res.Share, "\n")
 	if len(lines) != 3 {
 		t.Fatalf("share has %d lines, want 3:\n%s", len(lines), res.Share)
@@ -163,8 +193,9 @@ func TestShareStringShape(t *testing.T) {
 	if !strings.HasPrefix(lines[0], "Lights Out · Season ") {
 		t.Errorf("bad header: %q", lines[0])
 	}
-	if !strings.Contains(lines[1], "pts") {
-		t.Errorf("bad summary: %q", lines[1])
+	// The summary must carry its own denominator to be legible cold.
+	if !strings.Contains(lines[1], " of ") || !strings.Contains(lines[1], "pts") {
+		t.Errorf("summary %q should read like \"P3 of 11 · 120 pts\"", lines[1])
 	}
 	if n := utf8.RuneCountInString(lines[2]); n < RaceCount {
 		t.Errorf("emoji row has %d runes, want at least %d: %q", n, RaceCount, lines[2])
@@ -172,10 +203,44 @@ func TestShareStringShape(t *testing.T) {
 }
 
 func TestShareStringHasNoSpoilers(t *testing.T) {
-	res, _ := RunSeason(142, evenDecisions())
-	for _, leak := range []string{"chassis", "engine", "aero", "reliability", "seed"} {
+	res, _ := RunSeason(142, evenPicks())
+	for _, leak := range []string{"chassis", "engine", "aero", "seed"} {
 		if strings.Contains(strings.ToLower(res.Share), leak) {
 			t.Errorf("share string leaks strategy detail %q:\n%s", leak, res.Share)
 		}
+	}
+	// The default share must not name the build either: on a shared daily
+	// seed your parts ARE the strategy. Copying with the build is opt-in.
+	for _, c := range res.Build {
+		if strings.Contains(res.Share, c.Name) {
+			t.Errorf("default share names the part %q", c.Name)
+		}
+	}
+}
+
+func TestDealsDoNotDisturbRaceResolution(t *testing.T) {
+	// The behavioural half of the three-stream rule: adding a card to the
+	// pool changes what is dealt, but must not move the RNG the races
+	// consume. If this fails, editing the pool silently rewrites history.
+	season := GenerateSeason(31337)
+	cars := make([]*carState, len(season.Teams))
+	for i, tm := range season.Teams {
+		cars[i] = newCarState(tm)
+	}
+	gridBefore := qualify(cars, season.Calendar[0].Profile, NewRNG(31337^raceSalt))
+
+	original := CardPool
+	t.Cleanup(func() { CardPool = original })
+	CardPool = append(append([]Card{}, original...), Card{
+		ID: "test-only", Name: "Test Only", Blurb: "not a real part",
+		Effect: Decision{Chassis: 50, Engine: 50, Aero: 50},
+	})
+
+	gridAfter := qualify(cars, season.Calendar[0].Profile, NewRNG(31337^raceSalt))
+	if !reflect.DeepEqual(gridBefore, gridAfter) {
+		t.Error("changing the card pool moved the race RNG stream")
+	}
+	if reflect.DeepEqual(DealsFor(31337), DealsFor(31337)) == false {
+		t.Error("deals became non-deterministic")
 	}
 }

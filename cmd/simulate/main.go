@@ -15,18 +15,18 @@ import (
 
 func main() {
 	seed := flag.Int64("seed", 1, "season seed")
-	strategy := flag.String("strategy", "even", "player strategy: even, aggressive, specialist, adaptive, aerofirst, idle")
+	strategy := flag.String("strategy", "adaptive", "player strategy: greedy, cautious, aerofirst, adaptive, first")
 	asJSON := flag.Bool("json", false, "emit the full result as JSON")
 	flag.Parse()
 
 	season := sim.GenerateSeason(*seed)
-	decisions := sim.Strategy(*strategy, season)
-	if decisions == nil {
+	picks := sim.Strategy(*strategy, season)
+	if picks == nil {
 		fmt.Fprintf(os.Stderr, "unknown strategy %q\n", *strategy)
 		os.Exit(2)
 	}
 
-	res, err := sim.RunSeason(*seed, decisions)
+	res, err := sim.RunSeason(*seed, picks)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -43,6 +43,23 @@ func main() {
 	}
 
 	fmt.Printf("Seed %d · sim %s · strategy %s\n\n", *seed, res.SimVersion, *strategy)
+
+	fmt.Printf("%-4s %-24s %-22s %6s\n", "WIN", "PART", "EFFECT", "COST")
+	fmt.Println(strings.Repeat("-", 60))
+	for i, c := range res.Build {
+		eff := ""
+		if c.Effect.Chassis > 0 {
+			eff += fmt.Sprintf("+%d cha ", c.Effect.Chassis/10)
+		}
+		if c.Effect.Engine > 0 {
+			eff += fmt.Sprintf("+%d eng ", c.Effect.Engine/10)
+		}
+		if c.Effect.Aero > 0 {
+			eff += fmt.Sprintf("+%d aer", c.Effect.Aero/10)
+		}
+		fmt.Printf("%-4d %-24s %-22s %6d\n", i+1, c.Name, eff, c.Cost())
+	}
+	fmt.Println()
 
 	fmt.Printf("%-4s %-18s %-11s %5s %5s %6s\n", "RD", "CIRCUIT", "TYPE", "GRID", "FIN", "PTS")
 	fmt.Println(strings.Repeat("-", 56))

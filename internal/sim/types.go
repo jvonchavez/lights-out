@@ -109,6 +109,9 @@ type Standing struct {
 type SeasonResult struct {
 	SimVersion string       `json:"sim_version"`
 	Seed       int64        `json:"seed"`
+	// Build is the cards the player took, in window order. It is the
+	// artifact the player assembled and the thing worth arguing about.
+	Build      []Card       `json:"build"`
 	Races      []RaceResult `json:"races"`
 	Standings  []Standing   `json:"standings"`
 	Player     Standing     `json:"player"`

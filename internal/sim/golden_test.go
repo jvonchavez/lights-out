@@ -10,45 +10,26 @@ import (
 
 var update = flag.Bool("update", false, "rewrite the golden fixtures")
 
-// goldenCases are committed seed/decision pairs whose full expected result
+// goldenCases are committed seed/pick pairs whose full expected result
 // lives in testdata/golden. If a rules change alters any of them, this test
 // fails loudly -- which is the entire point. Regenerate with -update ONLY
 // when the change was intended, and bump sim.Version when you do.
 var goldenCases = []struct {
-	name      string
-	seed      int64
-	decisions []Decision
+	name  string
+	seed  int64
+	picks []int
 }{
-	{"seed-1001-even", 1001, repeatDecision(Decision{34, 33, 33})},
-	{"seed-2002-aggressive", 2002, frontLoaded()},
-	{"seed-3003-specialist", 3003, repeatDecision(Decision{Engine: 100})},
-	{"seed-4004-aeroheavy", 4004, repeatDecision(Decision{20, 20, 60})},
-	{"seed-5005-idle", 5005, repeatDecision(Decision{})},
-}
-
-func repeatDecision(d Decision) []Decision {
-	ds := make([]Decision, RaceCount)
-	for i := range ds {
-		ds[i] = d
-	}
-	return ds
-}
-
-// frontLoaded spends everything on performance early, then nothing.
-func frontLoaded() []Decision {
-	ds := make([]Decision, RaceCount)
-	for i := range ds {
-		if i < 3 {
-			ds[i] = Decision{Chassis: 50, Engine: 50}
-		}
-	}
-	return ds
+	{"seed-1001-middle", 1001, []int{1, 1, 1, 1, 1}},
+	{"seed-2002-first", 2002, []int{0, 0, 0, 0, 0}},
+	{"seed-3003-last", 3003, []int{2, 2, 2, 2, 2}},
+	{"seed-4004-mixed", 4004, []int{0, 2, 1, 2, 0}},
+	{"seed-5005-greedy", 5005, Strategy("greedy", GenerateSeason(5005))},
 }
 
 func TestGolden(t *testing.T) {
 	for _, tc := range goldenCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := RunSeason(tc.seed, tc.decisions)
+			got, err := RunSeason(tc.seed, tc.picks)
 			if err != nil {
 				t.Fatalf("RunSeason: %v", err)
 			}

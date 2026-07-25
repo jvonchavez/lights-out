@@ -1,79 +1,91 @@
 package sim
 
-// rivalDecision returns a rival's allocation for one round. It is a pure
-// function of (archetype, round, calendar, budget) and NEVER sees the
-// player. docs/Game Design.md is explicit about why: an AI that reacted to
-// the player would make the daily seed unfair, because two players making
-// different early choices would face different fields.
+// rivalPick chooses one card from a window's deal for a rival team.
 //
-// Each archetype expresses a different bet about where performance comes
-// from. None of them is strictly best; M1 measured the field at roughly
-// 10-14% championships each, with the specialists as the deliberate trap.
-func rivalDecision(t Team, round int, cal []Circuit, budget int) Decision {
-	var d Decision
+// Rivals are dealt the SAME three cards as the player and choose by
+// archetype, which makes their behaviour legible -- you can see that
+// Bellweather took the gearbox you passed on. They never see the player's
+// picks: docs/Game Design.md is explicit that an adaptive AI would make the
+// daily seed unfair, because two players making different early choices
+// would face different fields.
+//
+// Every rule ends by breaking ties on the LOWEST index, so the choice is a
+// total order and cannot depend on how the deal happened to be assembled.
+func rivalPick(t Team, deal [DealSize]Card, window int, cal []Circuit) int {
+	best := 0
 	switch t.Archetype {
 	case "aggressive":
-		// Pours everything into raw chassis and engine and neglects aero.
-		// High DNF rate, high ceiling, and blind to the fact that aero
-		// multiplies the whole car rather than only its own term.
-		d = split(budget, 45, 45, 10)
+		// Spends heavily and early: high DNF rate, high ceiling.
+		for i := 1; i < DealSize; i++ {
+			if deal[i].Cost() > deal[best].Cost() {
+				best = i
+			}
+		}
 	case "conservative":
-		// Spreads evenly. Rarely fails spectacularly, rarely dominates.
-		d = split(budget, 34, 33, 33)
+		// Rarely fails spectacularly, rarely dominates.
+		for i := 1; i < DealSize; i++ {
+			if deal[i].Cost() < deal[best].Cost() {
+				best = i
+			}
+		}
 	case "specialist":
-		// Pours everything into one area, dominant at circuits that suit it
-		// and badly exposed everywhere else.
-		switch t.ID % 3 {
-		case 0:
-			d = split(budget, 100, 0, 0)
-		case 1:
-			d = split(budget, 0, 100, 0)
-		default:
-			d = split(budget, 0, 0, 100)
+		// Pours everything into one area, dominant where it suits and
+		// badly exposed everywhere else.
+		area := t.ID % 3
+		for i := 1; i < DealSize; i++ {
+			if areaUnits(deal[i], area) > areaUnits(deal[best], area) {
+				best = i
+			}
 		}
 	case "reactive":
-		// Invests toward whichever archetype dominates the next two
-		// circuits, clamped at the end of the calendar.
-		var wc, we, wa Milli
-		for off := 0; off < 2; off++ {
-			i := round + off
-			if i >= len(cal) {
-				i = len(cal) - 1
+		// Invests toward whichever archetype dominates the races this
+		// window precedes, clamped at the end of the calendar.
+		wc, we, wa := weightsForWindow(window, cal)
+		bestScore := cardFit(deal[0], wc, we, wa)
+		for i := 1; i < DealSize; i++ {
+			if s := cardFit(deal[i], wc, we, wa); s > bestScore {
+				best, bestScore = i, s
 			}
-			p := cal[i].Profile
-			wc += p.Chassis
-			we += p.Engine
-			wa += p.Aero
-		}
-		sum := wc + we + wa
-		if sum == 0 { // unreachable with real profiles, but never divide by zero
-			d = split(budget, 34, 33, 33)
-			break
-		}
-		d = Decision{
-			Chassis: budget * int(wc) / int(sum),
-			Engine:  budget * int(we) / int(sum),
-			Aero:    budget * int(wa) / int(sum),
 		}
 	default:
-		d = split(budget, 34, 33, 33)
+		// An unknown archetype takes the middle option rather than
+		// panicking; GenerateSeason only ever assigns the four above.
+		best = 0
 	}
-
-	// Integer division above can leave the budget under-spent. Assign the
-	// remainder to chassis so nothing is silently dropped and every rival
-	// spends exactly its budget.
-	if rem := budget - d.Total(); rem > 0 {
-		d.Chassis += rem
-	}
-	return d
+	return best
 }
 
-// split allocates budget by percentage across the three development areas.
-// Any rounding shortfall is corrected by the caller.
-func split(budget, chassis, engine, aero int) Decision {
-	return Decision{
-		Chassis: budget * chassis / 100,
-		Engine:  budget * engine / 100,
-		Aero:    budget * aero / 100,
+// areaUnits is the budget a card puts into one area, indexed as
+// 0 chassis, 1 engine, 2 aero.
+func areaUnits(c Card, area int) int {
+	switch area {
+	case 0:
+		return c.Effect.Chassis
+	case 1:
+		return c.Effect.Engine
+	default:
+		return c.Effect.Aero
 	}
+}
+
+// weightsForWindow sums the circuit weights of the races a window precedes.
+func weightsForWindow(window int, cal []Circuit) (wc, we, wa Milli) {
+	start := WindowRounds[window]
+	end := len(cal)
+	if window+1 < WindowCount {
+		end = WindowRounds[window+1]
+	}
+	for i := start; i < end && i < len(cal); i++ {
+		p := cal[i].Profile
+		wc += p.Chassis
+		we += p.Engine
+		wa += p.Aero
+	}
+	return
+}
+
+// cardFit scores a card against a set of circuit weights: how much useful
+// performance its units buy at the races just ahead.
+func cardFit(c Card, wc, we, wa Milli) Milli {
+	return Milli(c.Effect.Chassis)*wc + Milli(c.Effect.Engine)*we + Milli(c.Effect.Aero)*wa
 }

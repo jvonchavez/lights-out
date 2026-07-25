@@ -7,26 +7,20 @@ import (
 	"pgregory.net/rapid"
 )
 
-// drawDecisions generates a valid allocation set by construction: each area
-// draws from whatever budget remains, so the total can never exceed it.
-func drawDecisions(rt *rapid.T) []Decision {
-	ds := make([]Decision, RaceCount)
-	for i := range ds {
-		rem := RaceBudget
-		c := rapid.IntRange(0, rem).Draw(rt, "chassis")
-		rem -= c
-		e := rapid.IntRange(0, rem).Draw(rt, "engine")
-		rem -= e
-		a := rapid.IntRange(0, rem).Draw(rt, "aero")
-		ds[i] = Decision{Chassis: c, Engine: e, Aero: a}
+// drawPicks generates a valid pick set by construction: one in-range card
+// index per development window.
+func drawPicks(rt *rapid.T) []int {
+	picks := make([]int, WindowCount)
+	for i := range picks {
+		picks[i] = rapid.IntRange(0, DealSize-1).Draw(rt, "pick")
 	}
-	return ds
+	return picks
 }
 
 func TestPropertiesOverGeneratedSeasons(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		seed := rapid.Int64().Draw(rt, "seed")
-		ds := drawDecisions(rt)
+		ds := drawPicks(rt)
 
 		res, err := RunSeason(seed, ds)
 		if err != nil {
@@ -93,15 +87,33 @@ func TestPropertiesOverGeneratedSeasons(t *testing.T) {
 	})
 }
 
-func TestPropertyEveryAllocationRespectsItsBudget(t *testing.T) {
+func TestPropertyEveryPickMustBeInRange(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
-		// Any allocation exceeding the budget must be rejected, always.
-		over := rapid.IntRange(RaceBudget+1, RaceBudget*4).Draw(rt, "over")
-		round := rapid.IntRange(0, RaceCount-1).Draw(rt, "round")
-		ds := evenDecisions()
-		ds[round] = Decision{Chassis: over}
-		if _, err := RunSeason(1, ds); err == nil {
-			rt.Errorf("allocation of %d in round %d was accepted, budget is %d", over, round+1, RaceBudget)
+		// Any out-of-range card index must be rejected, always.
+		bad := rapid.IntRange(DealSize, DealSize*20).Draw(rt, "bad")
+		window := rapid.IntRange(0, WindowCount-1).Draw(rt, "window")
+		picks := evenPicks()
+		picks[window] = bad
+		if _, err := RunSeason(1, picks); err == nil {
+			rt.Errorf("card index %d in window %d was accepted, deal size is %d", bad, window+1, DealSize)
+		}
+	})
+}
+
+func TestPropertyBuildAlwaysMatchesTheDeal(t *testing.T) {
+	rapid.Check(t, func(rt *rapid.T) {
+		seed := rapid.Int64().Draw(rt, "seed")
+		picks := drawPicks(rt)
+		res, err := RunSeason(seed, picks)
+		if err != nil {
+			rt.Fatalf("valid picks rejected: %v", err)
+		}
+		deals := DealsFor(seed)
+		for w, p := range picks {
+			if res.Build[w].ID != deals[w][p].ID {
+				rt.Errorf("window %d built %q but was dealt %q at index %d",
+					w, res.Build[w].ID, deals[w][p].ID, p)
+			}
 		}
 	})
 }

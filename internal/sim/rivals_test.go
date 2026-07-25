@@ -10,97 +10,126 @@ func testCalendar(archetypes ...string) []Circuit {
 	return cal
 }
 
-func TestRivalDecisionsSpendExactlyTheBudget(t *testing.T) {
+// dealOf builds a deal with known shapes for testing archetype rules.
+func dealOf(cards ...Card) [DealSize]Card {
+	var d [DealSize]Card
+	copy(d[:], cards)
+	return d
+}
+
+var (
+	cheapCard  = Card{ID: "cheap", Name: "Cheap", Blurb: "b", Effect: Decision{Chassis: 50, Engine: 50, Aero: 50}}
+	richCard   = Card{ID: "rich", Name: "Rich", Blurb: "b", Effect: Decision{Chassis: 90, Engine: 90, Aero: 80}}
+	engineCard = Card{ID: "eng", Name: "Engine", Blurb: "b", Effect: Decision{Engine: 250}}
+	chassCard  = Card{ID: "cha", Name: "Chassis", Blurb: "b", Effect: Decision{Chassis: 250}}
+	aeroCard   = Card{ID: "aer", Name: "Aero", Blurb: "b", Effect: Decision{Aero: 250}}
+)
+
+func TestRivalPicksAreInRange(t *testing.T) {
 	cal := GenerateSeason(1).Calendar
+	deals := DealsFor(1)
 	for _, arch := range rivalArchetypes {
-		for round := 0; round < RaceCount; round++ {
+		for w := 0; w < WindowCount; w++ {
 			tm := Team{ID: 1, Archetype: arch}
-			d := rivalDecision(tm, round, cal, RaceBudget)
-			if d.Total() != RaceBudget {
-				t.Errorf("%s round %d spent %d, want exactly %d", arch, round, d.Total(), RaceBudget)
-			}
-			if d.Chassis < 0 || d.Engine < 0 || d.Aero < 0 {
-				t.Errorf("%s round %d has a negative allocation: %+v", arch, round, d)
+			got := rivalPick(tm, deals[w], w, cal)
+			if got < 0 || got >= DealSize {
+				t.Errorf("%s window %d picked %d, outside [0,%d)", arch, w, got, DealSize)
 			}
 		}
 	}
 }
 
-func TestRivalDecisionsAreDeterministic(t *testing.T) {
+func TestRivalPicksAreDeterministic(t *testing.T) {
 	cal := GenerateSeason(2).Calendar
+	deal := DealsFor(2)[1]
 	for _, arch := range rivalArchetypes {
 		tm := Team{ID: 3, Archetype: arch}
-		a := rivalDecision(tm, 4, cal, RaceBudget)
-		b := rivalDecision(tm, 4, cal, RaceBudget)
-		if a != b {
-			t.Errorf("%s is not deterministic: %+v vs %+v", arch, a, b)
+		if a, b := rivalPick(tm, deal, 1, cal), rivalPick(tm, deal, 1, cal); a != b {
+			t.Errorf("%s is not deterministic: %d vs %d", arch, a, b)
 		}
 	}
 }
 
-func TestAggressiveNeglectsAero(t *testing.T) {
-	// The aggressive archetype buys raw chassis and engine and is blind to
-	// the fact that aero multiplies the whole car. That blindness is the
-	// point: it is a high-risk, high-ceiling bet that M1 measured as poor.
+func TestAggressiveTakesTheCostliestCard(t *testing.T) {
 	cal := GenerateSeason(3).Calendar
-	d := rivalDecision(Team{ID: 1, Archetype: "aggressive"}, 0, cal, RaceBudget)
-	if d.Aero >= d.Chassis || d.Aero >= d.Engine {
-		t.Errorf("aggressive should underweight aero: %+v", d)
+	deal := dealOf(cheapCard, richCard, engineCard) // costs 150, 260, 250
+	got := rivalPick(Team{ID: 1, Archetype: "aggressive"}, deal, 0, cal)
+	if deal[got].Cost() != 260 {
+		t.Errorf("aggressive took %s at %d units, want the 260-unit card", deal[got].ID, deal[got].Cost())
 	}
 }
 
-func TestConservativeSpreadsEvenly(t *testing.T) {
+func TestConservativeTakesTheCheapestCard(t *testing.T) {
+	cal := GenerateSeason(3).Calendar
+	deal := dealOf(richCard, engineCard, cheapCard)
+	got := rivalPick(Team{ID: 2, Archetype: "conservative"}, deal, 0, cal)
+	if deal[got].ID != "cheap" {
+		t.Errorf("conservative took %s, want the cheapest", deal[got].ID)
+	}
+}
+
+func TestAggressiveOutspendsConservative(t *testing.T) {
 	cal := GenerateSeason(4).Calendar
-	d := rivalDecision(Team{ID: 2, Archetype: "conservative"}, 0, cal, RaceBudget)
-	want := Decision{34, 33, 33}
-	if d != want {
-		t.Errorf("conservative = %+v, want %+v", d, want)
+	deals := DealsFor(4)
+	agg, con := 0, 0
+	for w := 0; w < WindowCount; w++ {
+		agg += deals[w][rivalPick(Team{ID: 1, Archetype: "aggressive"}, deals[w], w, cal)].Cost()
+		con += deals[w][rivalPick(Team{ID: 2, Archetype: "conservative"}, deals[w], w, cal)].Cost()
+	}
+	if agg <= con {
+		t.Errorf("aggressive banked %d units, conservative %d -- aggressive must spend more", agg, con)
 	}
 }
 
-func TestSpecialistConcentratesOnOneArea(t *testing.T) {
+func TestSpecialistFollowsItsArea(t *testing.T) {
 	cal := GenerateSeason(5).Calendar
-	seen := map[int]bool{}
-	for id := 1; id <= 10; id++ {
-		d := rivalDecision(Team{ID: id, Archetype: "specialist"}, 0, cal, RaceBudget)
-		perf := []int{d.Chassis, d.Engine, d.Aero}
-		nonZero := 0
-		for i, v := range perf {
-			if v > 0 {
-				nonZero++
-				seen[i] = true
-			}
+	deal := dealOf(chassCard, engineCard, aeroCard)
+	// team.ID % 3 selects the area: 0 chassis, 1 engine, 2 aero.
+	for id, wantID := range map[int]string{3: "cha", 7: "eng", 8: "aer"} {
+		got := rivalPick(Team{ID: id, Archetype: "specialist"}, deal, 0, cal)
+		if deal[got].ID != wantID {
+			t.Errorf("specialist %d took %s, want %s", id, deal[got].ID, wantID)
 		}
-		if nonZero != 1 {
-			t.Errorf("team %d specialist spread across %d areas, want 1: %+v", id, nonZero, d)
-		}
-	}
-	if len(seen) < 3 {
-		t.Errorf("specialists only ever chose %d distinct areas, want 3", len(seen))
 	}
 }
 
 func TestReactiveFollowsTheCalendar(t *testing.T) {
-	// Rounds 2 and 3 (0-based) are power circuits, so the round-1 decision
-	// looking two ahead should favour engine over chassis.
+	// Windows 0 and 1 precede rounds 0-1 and 2-3. Make rounds 2-3 power
+	// circuits and the window-1 reactive rival should take the engine card.
 	cal := testCalendar("balanced", "balanced", "power", "power", "technical",
 		"technical", "balanced", "balanced", "power", "technical")
-	d := rivalDecision(Team{ID: 4, Archetype: "reactive"}, 2, cal, RaceBudget)
-	if d.Engine <= d.Chassis {
-		t.Errorf("reactive at power circuits: engine %d, chassis %d -- want engine higher", d.Engine, d.Chassis)
+	deal := dealOf(chassCard, engineCard, aeroCard)
+
+	got := rivalPick(Team{ID: 4, Archetype: "reactive"}, deal, 1, cal)
+	if deal[got].ID != "eng" {
+		t.Errorf("reactive at power circuits took %s, want the engine card", deal[got].ID)
 	}
 
-	// Mirror: technical circuits ahead should favour chassis.
-	d2 := rivalDecision(Team{ID: 4, Archetype: "reactive"}, 4, cal, RaceBudget)
-	if d2.Chassis <= d2.Engine {
-		t.Errorf("reactive at technical circuits: chassis %d, engine %d -- want chassis higher", d2.Chassis, d2.Engine)
+	// Window 2 precedes rounds 4-5, both technical.
+	got = rivalPick(Team{ID: 4, Archetype: "reactive"}, deal, 2, cal)
+	if deal[got].ID != "cha" {
+		t.Errorf("reactive at technical circuits took %s, want the chassis card", deal[got].ID)
 	}
 }
 
-func TestReactiveHandlesTheFinalRound(t *testing.T) {
+func TestReactiveHandlesTheFinalWindow(t *testing.T) {
 	cal := GenerateSeason(6).Calendar
-	d := rivalDecision(Team{ID: 4, Archetype: "reactive"}, RaceCount-1, cal, RaceBudget)
-	if d.Total() != RaceBudget {
-		t.Errorf("reactive final round spent %d, want %d", d.Total(), RaceBudget)
+	deal := DealsFor(6)[WindowCount-1]
+	got := rivalPick(Team{ID: 4, Archetype: "reactive"}, deal, WindowCount-1, cal)
+	if got < 0 || got >= DealSize {
+		t.Errorf("reactive final window picked %d", got)
+	}
+}
+
+func TestTiesBreakOnLowestIndex(t *testing.T) {
+	cal := GenerateSeason(7).Calendar
+	same := Card{ID: "a", Name: "A", Blurb: "b", Effect: Decision{Chassis: 60, Engine: 60, Aero: 60}}
+	dupe := Card{ID: "b", Name: "B", Blurb: "b", Effect: Decision{Chassis: 60, Engine: 60, Aero: 60}}
+	third := Card{ID: "c", Name: "C", Blurb: "b", Effect: Decision{Chassis: 60, Engine: 60, Aero: 60}}
+	deal := dealOf(same, dupe, third)
+	for _, arch := range rivalArchetypes {
+		if got := rivalPick(Team{ID: 1, Archetype: arch}, deal, 0, cal); got != 0 {
+			t.Errorf("%s broke a three-way tie to index %d, want 0", arch, got)
+		}
 	}
 }
