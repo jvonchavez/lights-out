@@ -314,9 +314,9 @@
         {
           "team_id": 0,
           "grid": 10,
-          "finish": 6,
+          "finish": 7,
           "dnf": false,
-          "points": 8
+          "points": 6
         },
         {
           "team_id": 1,
@@ -334,10 +334,10 @@
         },
         {
           "team_id": 3,
-          "grid": 5,
-          "finish": 4,
+          "grid": 6,
+          "finish": 5,
           "dnf": false,
-          "points": 12
+          "points": 10
         },
         {
           "team_id": 4,
@@ -362,21 +362,21 @@
         },
         {
           "team_id": 7,
-          "grid": 6,
-          "finish": 7,
+          "grid": 4,
+          "finish": 4,
           "dnf": false,
-          "points": 6
+          "points": 12
         },
         {
           "team_id": 8,
           "grid": 2,
-          "finish": 5,
+          "finish": 6,
           "dnf": false,
-          "points": 10
+          "points": 8
         },
         {
           "team_id": 9,
-          "grid": 4,
+          "grid": 5,
           "finish": 2,
           "dnf": false,
           "points": 18
@@ -397,35 +397,35 @@
       "cars": [
         {
           "team_id": 0,
-          "grid": 4,
-          "finish": 0,
-          "dnf": true,
-          "points": 0
-        },
-        {
-          "team_id": 1,
-          "grid": 9,
-          "finish": 6,
-          "dnf": false,
-          "points": 8
-        },
-        {
-          "team_id": 2,
           "grid": 5,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
-          "team_id": 3,
-          "grid": 8,
-          "finish": 5,
+          "team_id": 1,
+          "grid": 11,
+          "finish": 7,
           "dnf": false,
-          "points": 10
+          "points": 6
+        },
+        {
+          "team_id": 2,
+          "grid": 3,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
+          "team_id": 3,
+          "grid": 10,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
         },
         {
           "team_id": 4,
-          "grid": 7,
+          "grid": 9,
           "finish": 4,
           "dnf": false,
           "points": 12
@@ -439,38 +439,38 @@
         },
         {
           "team_id": 6,
-          "grid": 11,
-          "finish": 7,
+          "grid": 8,
+          "finish": 5,
           "dnf": false,
-          "points": 6
+          "points": 10
         },
         {
           "team_id": 7,
-          "grid": 3,
+          "grid": 1,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
           "team_id": 8,
-          "grid": 10,
+          "grid": 7,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 9,
+          "grid": 4,
           "finish": 3,
           "dnf": false,
           "points": 15
         },
         {
-          "team_id": 9,
+          "team_id": 10,
           "grid": 2,
           "finish": 2,
           "dnf": false,
           "points": 18
-        },
-        {
-          "team_id": 10,
-          "grid": 1,
-          "finish": 1,
-          "dnf": false,
-          "points": 25
         }
       ]
     },
@@ -481,28 +481,28 @@
       "cars": [
         {
           "team_id": 0,
-          "grid": 5,
+          "grid": 6,
           "finish": 4,
           "dnf": false,
           "points": 12
         },
         {
           "team_id": 1,
-          "grid": 8,
-          "finish": 6,
-          "dnf": false,
-          "points": 8
-        },
-        {
-          "team_id": 2,
           "grid": 9,
           "finish": 7,
           "dnf": false,
           "points": 6
         },
         {
+          "team_id": 2,
+          "grid": 10,
+          "finish": 8,
+          "dnf": false,
+          "points": 4
+        },
+        {
           "team_id": 3,
-          "grid": 6,
+          "grid": 7,
           "finish": 3,
           "dnf": false,
           "points": 15
@@ -530,31 +530,31 @@
         },
         {
           "team_id": 7,
-          "grid": 10,
-          "finish": 8,
+          "grid": 5,
+          "finish": 5,
           "dnf": false,
-          "points": 4
+          "points": 10
         },
         {
           "team_id": 8,
-          "grid": 2,
+          "grid": 1,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
           "team_id": 9,
-          "grid": 1,
+          "grid": 2,
           "finish": 1,
           "dnf": false,
           "points": 25
         },
         {
           "team_id": 10,
-          "grid": 7,
-          "finish": 5,
+          "grid": 8,
+          "finish": 6,
           "dnf": false,
-          "points": 10
+          "points": 8
         }
       ]
     },
@@ -565,10 +565,10 @@
       "cars": [
         {
           "team_id": 0,
-          "grid": 6,
-          "finish": 6,
+          "grid": 7,
+          "finish": 5,
           "dnf": false,
-          "points": 8
+          "points": 10
         },
         {
           "team_id": 1,
@@ -579,7 +579,7 @@
         },
         {
           "team_id": 2,
-          "grid": 4,
+          "grid": 3,
           "finish": 0,
           "dnf": true,
           "points": 0
@@ -593,7 +593,7 @@
         },
         {
           "team_id": 4,
-          "grid": 3,
+          "grid": 4,
           "finish": 3,
           "dnf": false,
           "points": 15
@@ -601,16 +601,16 @@
         {
           "team_id": 5,
           "grid": 8,
-          "finish": 4,
+          "finish": 6,
           "dnf": false,
-          "points": 12
+          "points": 8
         },
         {
           "team_id": 6,
-          "grid": 7,
-          "finish": 5,
+          "grid": 6,
+          "finish": 4,
           "dnf": false,
-          "points": 10
+          "points": 12
         },
         {
           "team_id": 7,
@@ -649,28 +649,28 @@
       "cars": [
         {
           "team_id": 0,
+          "grid": 9,
+          "finish": 5,
+          "dnf": false,
+          "points": 10
+        },
+        {
+          "team_id": 1,
+          "grid": 10,
+          "finish": 6,
+          "dnf": false,
+          "points": 8
+        },
+        {
+          "team_id": 2,
           "grid": 6,
           "finish": 3,
           "dnf": false,
           "points": 15
         },
         {
-          "team_id": 1,
-          "grid": 8,
-          "finish": 5,
-          "dnf": false,
-          "points": 10
-        },
-        {
-          "team_id": 2,
-          "grid": 7,
-          "finish": 4,
-          "dnf": false,
-          "points": 12
-        },
-        {
           "team_id": 3,
-          "grid": 9,
+          "grid": 11,
           "finish": 0,
           "dnf": true,
           "points": 0
@@ -684,42 +684,42 @@
         },
         {
           "team_id": 5,
-          "grid": 2,
+          "grid": 4,
           "finish": 2,
           "dnf": false,
           "points": 18
         },
         {
           "team_id": 6,
-          "grid": 11,
-          "finish": 6,
+          "grid": 7,
+          "finish": 4,
           "dnf": false,
-          "points": 8
+          "points": 12
         },
         {
           "team_id": 7,
-          "grid": 3,
-          "finish": 0,
-          "dnf": true,
-          "points": 0
-        },
-        {
-          "team_id": 8,
-          "grid": 4,
-          "finish": 1,
-          "dnf": false,
-          "points": 25
-        },
-        {
-          "team_id": 9,
           "grid": 1,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
+          "team_id": 8,
+          "grid": 2,
+          "finish": 1,
+          "dnf": false,
+          "points": 25
+        },
+        {
+          "team_id": 9,
+          "grid": 3,
+          "finish": 0,
+          "dnf": true,
+          "points": 0
+        },
+        {
           "team_id": 10,
-          "grid": 10,
+          "grid": 8,
           "finish": 0,
           "dnf": true,
           "points": 0
@@ -740,31 +740,31 @@
         },
         {
           "team_id": 1,
-          "grid": 6,
+          "grid": 5,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
           "team_id": 2,
-          "grid": 9,
+          "grid": 8,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
           "team_id": 3,
-          "grid": 10,
+          "grid": 11,
           "finish": 0,
           "dnf": true,
           "points": 0
         },
         {
           "team_id": 4,
-          "grid": 5,
-          "finish": 4,
+          "grid": 7,
+          "finish": 5,
           "dnf": false,
-          "points": 12
+          "points": 10
         },
         {
           "team_id": 5,
@@ -775,14 +775,14 @@
         },
         {
           "team_id": 6,
-          "grid": 11,
+          "grid": 10,
           "finish": 6,
           "dnf": false,
           "points": 8
         },
         {
           "team_id": 7,
-          "grid": 8,
+          "grid": 6,
           "finish": 3,
           "dnf": false,
           "points": 15
@@ -790,9 +790,9 @@
         {
           "team_id": 8,
           "grid": 4,
-          "finish": 5,
+          "finish": 4,
           "dnf": false,
-          "points": 10
+          "points": 12
         },
         {
           "team_id": 9,
@@ -803,7 +803,7 @@
         },
         {
           "team_id": 10,
-          "grid": 7,
+          "grid": 9,
           "finish": 0,
           "dnf": true,
           "points": 0
@@ -838,7 +838,7 @@
         },
         {
           "team_id": 3,
-          "grid": 5,
+          "grid": 7,
           "finish": 0,
           "dnf": true,
           "points": 0
@@ -846,9 +846,9 @@
         {
           "team_id": 4,
           "grid": 6,
-          "finish": 3,
+          "finish": 4,
           "dnf": false,
-          "points": 15
+          "points": 12
         },
         {
           "team_id": 5,
@@ -867,16 +867,16 @@
         {
           "team_id": 7,
           "grid": 9,
-          "finish": 6,
+          "finish": 5,
           "dnf": false,
-          "points": 8
+          "points": 10
         },
         {
           "team_id": 8,
-          "grid": 8,
-          "finish": 4,
+          "grid": 5,
+          "finish": 3,
           "dnf": false,
-          "points": 12
+          "points": 15
         },
         {
           "team_id": 9,
@@ -887,10 +887,10 @@
         },
         {
           "team_id": 10,
-          "grid": 7,
-          "finish": 5,
+          "grid": 8,
+          "finish": 6,
           "dnf": false,
-          "points": 10
+          "points": 8
         }
       ]
     }
@@ -899,87 +899,87 @@
     {
       "team_id": 8,
       "name": "Halcyon Motorsport",
-      "points": 151,
-      "wins": 2,
-      "podiums": 6,
+      "points": 164,
+      "wins": 3,
+      "podiums": 7,
       "dnfs": 1
     },
     {
       "team_id": 7,
       "name": "Grosvenor Racing",
-      "points": 126,
+      "points": 140,
       "wins": 3,
       "podiums": 5,
       "dnfs": 2
     },
     {
-      "team_id": 4,
-      "name": "Dalgetty Racing",
-      "points": 105,
-      "wins": 0,
-      "podiums": 5,
-      "dnfs": 1
-    },
-    {
       "team_id": 9,
       "name": "Ironwood GP",
-      "points": 104,
+      "points": 101,
       "wins": 2,
       "podiums": 4,
       "dnfs": 3
     },
     {
+      "team_id": 4,
+      "name": "Dalgetty Racing",
+      "points": 100,
+      "wins": 0,
+      "podiums": 4,
+      "dnfs": 1
+    },
+    {
       "team_id": 5,
       "name": "Eastgate F1",
-      "points": 87,
+      "points": 83,
       "wins": 1,
       "podiums": 3,
       "dnfs": 3
     },
     {
+      "team_id": 6,
+      "name": "Fennmoor GP",
+      "points": 78,
+      "wins": 0,
+      "podiums": 0,
+      "dnfs": 0
+    },
+    {
       "team_id": 0,
       "name": "Your Team",
-      "points": 82,
+      "points": 77,
       "wins": 1,
+      "podiums": 1,
+      "dnfs": 3
+    },
+    {
+      "team_id": 2,
+      "name": "Bellweather GP",
+      "points": 65,
+      "wins": 0,
       "podiums": 2,
       "dnfs": 3
     },
     {
       "team_id": 10,
       "name": "Jorvik Racing",
-      "points": 71,
-      "wins": 1,
+      "points": 60,
+      "wins": 0,
       "podiums": 1,
       "dnfs": 3
     },
     {
-      "team_id": 6,
-      "name": "Fennmoor GP",
-      "points": 68,
-      "wins": 0,
-      "podiums": 0,
-      "dnfs": 0
-    },
-    {
       "team_id": 1,
       "name": "Ardent Racing",
-      "points": 65,
+      "points": 59,
       "wins": 0,
       "podiums": 2,
       "dnfs": 1
     },
     {
-      "team_id": 2,
-      "name": "Bellweather GP",
-      "points": 64,
-      "wins": 0,
-      "podiums": 1,
-      "dnfs": 3
-    },
-    {
       "team_id": 3,
       "name": "Cinder Motorsport",
-      "points": 47,
+      "points": 43,
       "wins": 0,
       "podiums": 1,
       "dnfs": 3
@@ -988,11 +988,11 @@
   "player": {
     "team_id": 0,
     "name": "Your Team",
-    "points": 82,
+    "points": 77,
     "wins": 1,
-    "podiums": 2,
+    "podiums": 1,
     "dnfs": 3
   },
-  "player_position": 6,
-  "share": "Lights Out · Season 5\nP6 of 11 · 82 pts · 3 DNFs\n✖️🏁🏁🏁✖️🏁🏁🥉🥇✖️"
+  "player_position": 7,
+  "share": "Lights Out · Season 5\nP7 of 11 · 77 pts · 3 DNFs\n✖️🏁🏁🏁✖️🏁🏁🏁🥇✖️"
 }

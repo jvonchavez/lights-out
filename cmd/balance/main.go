@@ -19,7 +19,7 @@ import (
 	"github.com/jvonmikael/lights-out/internal/sim"
 )
 
-var strategies = []string{"even", "aggressive", "specialist", "adaptive", "aerofirst", "idle"}
+var strategies = []string{"greedy", "cautious", "aerofirst", "adaptive", "first"}
 
 type row struct {
 	seed     int64
@@ -29,6 +29,7 @@ type row struct {
 	wins     int
 	podiums  int
 	dnfs     int
+	spend    int // total development units banked, for risk calibration
 }
 
 func main() {
@@ -55,11 +56,15 @@ func main() {
 					if err != nil {
 						return fmt.Errorf("seed %d strategy %s: %w", seed, name, err)
 					}
+					spend := 0
+					for _, c := range res.Build {
+						spend += c.Cost()
+					}
 					results <- row{
 						seed: seed, strategy: name,
 						points: res.Player.Points, position: res.PlayerPos,
 						wins: res.Player.Wins, podiums: res.Player.Podiums,
-						dnfs: res.Player.DNFs,
+						dnfs: res.Player.DNFs, spend: spend,
 					}
 				}
 			}
@@ -99,12 +104,13 @@ func main() {
 	}
 	defer f.Close()
 	cw := csv.NewWriter(f)
-	cw.Write([]string{"seed", "strategy", "points", "position", "wins", "podiums", "dnfs"})
+	cw.Write([]string{"seed", "strategy", "points", "position", "wins", "podiums", "dnfs", "spend"})
 	for _, r := range rows {
 		cw.Write([]string{
 			strconv.FormatInt(r.seed, 10), r.strategy,
 			strconv.Itoa(r.points), strconv.Itoa(r.position),
 			strconv.Itoa(r.wins), strconv.Itoa(r.podiums), strconv.Itoa(r.dnfs),
+			strconv.Itoa(r.spend),
 		})
 	}
 	cw.Flush()
@@ -117,7 +123,7 @@ func main() {
 // player finished P1 in the standings.
 func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 	type agg struct {
-		seasons, titles, points, positions, wins, podiums, dnfs int
+		seasons, titles, points, positions, wins, podiums, dnfs, spend int
 	}
 	byStrategy := map[string]*agg{}
 	for _, r := range rows {
@@ -135,6 +141,7 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 		a.wins += r.wins
 		a.podiums += r.podiums
 		a.dnfs += r.dnfs
+		a.spend += r.spend
 	}
 
 	names := make([]string, 0, len(byStrategy))
@@ -147,8 +154,8 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 		n, len(strategies), elapsed.Round(time.Millisecond), workers,
 		float64(n*len(strategies))/elapsed.Seconds())
 
-	fmt.Printf("%-13s %8s %9s %9s %9s %9s\n", "STRATEGY", "TITLE%", "AVG PTS", "AVG POS", "AVG WINS", "AVG DNF")
-	fmt.Println("---------------------------------------------------------------")
+	fmt.Printf("%-13s %8s %9s %9s %9s %9s %9s\n", "STRATEGY", "TITLE%", "AVG PTS", "AVG POS", "AVG WINS", "AVG DNF", "AVG SPEND")
+	fmt.Println("-------------------------------------------------------------------------")
 	worst := ""
 	var maxTitle float64
 	for _, name := range names {
@@ -157,12 +164,13 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 		if titlePct > maxTitle {
 			maxTitle, worst = titlePct, name
 		}
-		fmt.Printf("%-13s %7.1f%% %9.1f %9.2f %9.2f %9.2f\n",
+		fmt.Printf("%-13s %7.1f%% %9.1f %9.2f %9.2f %9.2f %9.0f\n",
 			name, titlePct,
 			float64(a.points)/float64(a.seasons),
 			float64(a.positions)/float64(a.seasons),
 			float64(a.wins)/float64(a.seasons),
-			float64(a.dnfs)/float64(a.seasons))
+			float64(a.dnfs)/float64(a.seasons),
+			float64(a.spend)/float64(a.seasons))
 	}
 
 	fmt.Printf("\nM1 GATE: best strategy is %q at %.1f%% titles (target: at most ~35%%) -- %s\n",

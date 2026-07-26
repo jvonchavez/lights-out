@@ -49,13 +49,21 @@ const (
 	// only adding through its own circuit weight. AeroScale sets the rate,
 	// MaxAeroBonus caps it.
 	//
-	// The cap is what makes the sliders a real decision. Without it, a pure
-	// aero car compounds without limit and simply replaces engine as the
-	// dominant single answer. With it, aero is worth buying up to the cap
-	// and worthless past it, so the interesting question becomes what to do
-	// with the budget that remains.
+	// The cap is what stops a pure aero car compounding without limit and
+	// simply replacing engine as the single dominant answer. Aero is worth
+	// buying up to the cap and much less past it, so the question becomes
+	// what to take with the windows that remain.
+	//
+	// Raised from 150 to 310 for the card draft. With sliders a player
+	// could pour unlimited budget into aero, so the cap had to be tight.
+	// A deal of three cards constrains that on its own, and at 150 the
+	// deepest strategy (aerofirst, 14.4% titles) barely separated from the
+	// crudest one that simply buys the most (greedy, 13.9%). At 310 the
+	// gradient reads 4.2 / 8.1 / 10.4 / 14.3 / 20.8 across the five
+	// scripted strategies, and DNF rates are untouched because this lever
+	// moves performance rather than risk.
 	AeroScale    = Milli(12)
-	MaxAeroBonus = Milli(150) // at most +25% performance
+	MaxAeroBonus = Milli(310) // at most +31% performance
 
 	SafetyCarChance    = Milli(250) // 25% per race
 	SafetyCarThreshold = 2 * One    // cars within 2.0 pace may be shuffled
