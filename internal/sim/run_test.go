@@ -244,3 +244,43 @@ func TestDealsDoNotDisturbRaceResolution(t *testing.T) {
 		t.Error("deals became non-deterministic")
 	}
 }
+
+func TestPartialIsAPrefixOfTheFullSeason(t *testing.T) {
+	picks := []int{0, 1, 2, 1, 0}
+	full, err := RunSeason(9001, picks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	perWindow := RaceCount / WindowCount
+	for k := 1; k <= WindowCount; k++ {
+		part, err := RunPartial(9001, picks[:k])
+		if err != nil {
+			t.Fatalf("k=%d: %v", k, err)
+		}
+		if len(part.Races) != perWindow*k {
+			t.Fatalf("k=%d resolved %d races, want %d", k, len(part.Races), perWindow*k)
+		}
+		if !reflect.DeepEqual(part.Races, full.Races[:perWindow*k]) {
+			t.Errorf("k=%d races diverge from the full season -- the RNG is being consumed out of round order", k)
+		}
+		if len(part.Build) != k {
+			t.Errorf("k=%d build has %d cards, want %d", k, len(part.Build), k)
+		}
+	}
+}
+
+func TestPartialWithNoPicksResolvesNothing(t *testing.T) {
+	res, err := RunPartial(5, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Races) != 0 || len(res.Build) != 0 {
+		t.Errorf("no picks resolved %d races and %d cards, want none", len(res.Races), len(res.Build))
+	}
+}
+
+func TestPartialRejectsTooManyPicks(t *testing.T) {
+	if _, err := RunPartial(5, make([]int, WindowCount+1)); err == nil {
+		t.Error("want an error for more picks than windows")
+	}
+}
