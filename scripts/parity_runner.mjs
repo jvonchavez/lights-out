@@ -46,7 +46,7 @@ const out = [];
 for (const c of cases) {
   // The seed crosses as a string: a JS number is float64 and would lose
   // precision above 2^53.
-  out.push(globalThis.lightsOutRunSeason(String(c.seed), JSON.stringify(c.decisions)));
+  out.push(globalThis.lightsOutRunSeason(String(c.seed), JSON.stringify(c.picks)));
 }
 
 // Write synchronously and handle partial writes. process.stdout.write

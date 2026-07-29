@@ -29,20 +29,20 @@ func TestNativeWASMParity(t *testing.T) {
 	const seeds = 3000
 
 	type parityCase struct {
-		Seed      int64      `json:"seed"`
-		Decisions []Decision `json:"decisions"`
+		Seed  int64 `json:"seed"`
+		Picks []int `json:"picks"`
 	}
 
 	// Rotate through every scripted strategy so parity is exercised across
-	// the whole space of allocations, not just one shape.
-	names := []string{"even", "aggressive", "specialist", "adaptive", "aerofirst", "idle"}
+	// the whole space of card choices, not just one shape.
+	names := []string{"greedy", "cautious", "aerofirst", "adaptive", "first"}
 	cases := make([]parityCase, 0, seeds)
 	for i := 0; i < seeds; i++ {
 		seed := int64(i) * 7919 // spread seeds across the range
 		season := GenerateSeason(seed)
 		cases = append(cases, parityCase{
-			Seed:      seed,
-			Decisions: Strategy(names[i%len(names)], season),
+			Seed:  seed,
+			Picks: Strategy(names[i%len(names)], season),
 		})
 	}
 
@@ -66,7 +66,7 @@ func TestNativeWASMParity(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		native, err := RunSeason(c.Seed, c.Decisions)
+		native, err := RunSeason(c.Seed, c.Picks)
 		if err != nil {
 			t.Fatalf("case %d (seed %d): native error %v", i, c.Seed, err)
 		}

@@ -18,28 +18,55 @@ func errJSON(msg string) string {
 	return string(b)
 }
 
-// runSeason(seedString, decisionsJSON) -> resultJSON, or {"error": ...}.
+// runSeason(seedString, picksJSON) -> resultJSON, or {"error": ...}.
 //
 // The seed crosses as a STRING. JavaScript numbers are float64, so an int64
 // seed above 2^53 would silently lose precision on the way in and the
 // browser would play a different season from the one the server verifies.
 func runSeason(this js.Value, args []js.Value) any {
+	return run(args, sim.RunSeason, "runSeason expects (seedString, picksJSON)")
+}
+
+// runPartial(seedString, picksJSON) -> resultJSON for a prefix of picks, so
+// the client can show the races a window caused before dealing the next.
+func runPartial(this js.Value, args []js.Value) any {
+	return run(args, sim.RunPartial, "runPartial expects (seedString, picksJSON)")
+}
+
+func run(args []js.Value, fn func(int64, []int) (sim.SeasonResult, error), usage string) any {
 	if len(args) != 2 {
-		return errJSON("runSeason expects (seedString, decisionsJSON)")
+		return errJSON(usage)
 	}
 	seed, err := strconv.ParseInt(args[0].String(), 10, 64)
 	if err != nil {
 		return errJSON("bad seed: " + err.Error())
 	}
-	var ds []sim.Decision
-	if err := json.Unmarshal([]byte(args[1].String()), &ds); err != nil {
-		return errJSON("bad decisions: " + err.Error())
+	var picks []int
+	if err := json.Unmarshal([]byte(args[1].String()), &picks); err != nil {
+		return errJSON("bad picks: " + err.Error())
 	}
-	res, err := sim.RunSeason(seed, ds)
+	res, err := fn(seed, picks)
 	if err != nil {
 		return errJSON(err.Error())
 	}
 	out, err := json.Marshal(res)
+	if err != nil {
+		return errJSON(err.Error())
+	}
+	return string(out)
+}
+
+// dealsFor(seedString) -> dealsJSON, so the client can render cards from
+// the same source the server verifies against.
+func dealsFor(this js.Value, args []js.Value) any {
+	if len(args) != 1 {
+		return errJSON("dealsFor expects (seedString)")
+	}
+	seed, err := strconv.ParseInt(args[0].String(), 10, 64)
+	if err != nil {
+		return errJSON("bad seed: " + err.Error())
+	}
+	out, err := json.Marshal(sim.DealsFor(seed))
 	if err != nil {
 		return errJSON(err.Error())
 	}
@@ -65,6 +92,8 @@ func generateSeason(this js.Value, args []js.Value) any {
 
 func main() {
 	js.Global().Set("lightsOutRunSeason", js.FuncOf(runSeason))
+	js.Global().Set("lightsOutRunPartial", js.FuncOf(runPartial))
+	js.Global().Set("lightsOutDealsFor", js.FuncOf(dealsFor))
 	js.Global().Set("lightsOutGenerateSeason", js.FuncOf(generateSeason))
 	js.Global().Set("lightsOutVersion", sim.Version)
 	js.Global().Set("lightsOutReady", true)

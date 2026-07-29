@@ -42,23 +42,24 @@ type seasonResponse struct {
 	SimVersion string          `json:"sim_version"`
 	Calendar   json.RawMessage `json:"calendar"`
 	Field      json.RawMessage `json:"field"`
-	Budgets    []int           `json:"budgets"`
-	ClosesAt   time.Time       `json:"closes_at"`
+	// Deals are re-derived from the seed rather than stored, so the client
+	// can render cards before the WASM module finishes loading and the
+	// server is always the authority on what was offered.
+	Deals        [sim.WindowCount][sim.DealSize]sim.Card `json:"deals"`
+	WindowRounds [sim.WindowCount]int                    `json:"window_rounds"`
+	ClosesAt     time.Time                               `json:"closes_at"`
 }
 
 func seasonToResponse(row store.Season) seasonResponse {
-	budgets := make([]int, sim.RaceCount)
-	for i := range budgets {
-		budgets[i] = sim.RaceBudget
-	}
 	return seasonResponse{
-		ID:         row.ID,
-		Seed:       strconv.FormatInt(row.Seed, 10),
-		SimVersion: row.SimVersion,
-		Calendar:   row.Calendar,
-		Field:      row.Field,
-		Budgets:    budgets,
-		ClosesAt:   row.ClosesAt,
+		ID:           row.ID,
+		Seed:         strconv.FormatInt(row.Seed, 10),
+		SimVersion:   row.SimVersion,
+		Calendar:     row.Calendar,
+		Field:        row.Field,
+		Deals:        sim.DealsFor(row.Seed),
+		WindowRounds: sim.WindowRounds,
+		ClosesAt:     row.ClosesAt,
 	}
 }
 
@@ -86,11 +87,14 @@ func (s *Server) handleTodaySeason(w http.ResponseWriter, r *http.Request) {
 // decoded to, and is discarded by encoding/json. That is the cleanest
 // possible implementation of the trust boundary: the forged number cannot
 // be read, so it cannot be believed.
+//
+// Picks are card indices, so the client cannot even describe a development
+// that was not offered. The deal is re-derived from the season's seed.
 type submitRequest struct {
-	SeasonID    int64          `json:"season_id"`
-	PlayerID    string         `json:"player_id"`
-	DisplayName string         `json:"display_name"`
-	Decisions   []sim.Decision `json:"decisions"`
+	SeasonID    int64  `json:"season_id"`
+	PlayerID    string `json:"player_id"`
+	DisplayName string `json:"display_name"`
+	Picks       []int  `json:"picks"`
 }
 
 type submitResponse struct {
@@ -158,7 +162,7 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 	// from the request, and the score is computed here from the submitted
 	// decisions. Anything the client could lie about is recomputed.
 	start := time.Now()
-	result, err := sim.RunSeason(season.Seed, req.Decisions)
+	result, err := sim.RunSeason(season.Seed, req.Picks)
 	verifyDur := time.Since(start)
 	s.metrics.VerifyDuration.Observe(verifyDur.Seconds())
 	if err != nil {
@@ -173,9 +177,9 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	decisions, err := json.Marshal(req.Decisions)
+	decisions, err := json.Marshal(req.Picks)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, "could not encode decisions")
+		s.writeError(w, http.StatusBadRequest, "could not encode picks")
 		return
 	}
 	full, err := json.Marshal(result)

@@ -95,21 +95,21 @@ func (e *testEnv) do(method, path, body string) *httptest.ResponseRecorder {
 	return rec
 }
 
-// evenDecisionsJSON is a legal allocation for every round.
-func evenDecisionsJSON() string {
-	parts := make([]string, sim.RaceCount)
+// middlePicksJSON is a legal pick for every window.
+func middlePicksJSON() string {
+	parts := make([]string, sim.WindowCount)
 	for i := range parts {
-		parts[i] = `{"chassis":34,"engine":33,"aero":33}`
+		parts[i] = "1"
 	}
 	return "[" + strings.Join(parts, ",") + "]"
 }
 
-func evenDecisions() []sim.Decision {
-	ds := make([]sim.Decision, sim.RaceCount)
-	for i := range ds {
-		ds[i] = sim.Decision{Chassis: 34, Engine: 33, Aero: 33}
+func middlePicks() []int {
+	p := make([]int, sim.WindowCount)
+	for i := range p {
+		p[i] = 1
 	}
-	return ds
+	return p
 }
 
 // TestForgedScoreIsIgnored is the M3 definition of done.
@@ -132,8 +132,9 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 		"position": 1,
 		"rank": 1,
 		"result": {"player": {"points": 999999, "wins": 10}},
-		"decisions": %s
-	}`, env.seasonID, uuid.NewString(), evenDecisionsJSON())
+		"build": [{"name": "Fabricated Part"}],
+		"picks": %s
+	}`, env.seasonID, uuid.NewString(), middlePicksJSON())
 
 	rec := env.do("POST", "/api/runs", body)
 	if rec.Code != http.StatusCreated {
@@ -145,7 +146,7 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want, err := sim.RunSeason(env.seed, evenDecisions())
+	want, err := sim.RunSeason(env.seed, middlePicks())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,9 +185,9 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 func TestSubmissionValidation(t *testing.T) {
 	env := newTestEnv(t)
 
-	nineRounds := make([]string, sim.RaceCount-1)
-	for i := range nineRounds {
-		nineRounds[i] = `{"chassis":34,"engine":33,"aero":33}`
+	shortPicks := make([]string, sim.WindowCount-1)
+	for i := range shortPicks {
+		shortPicks[i] = "1"
 	}
 
 	tests := []struct {
@@ -195,18 +196,16 @@ func TestSubmissionValidation(t *testing.T) {
 		want int
 	}{
 		{"malformed json", `{`, http.StatusBadRequest},
-		{"bad player id", fmt.Sprintf(`{"season_id":%d,"player_id":"not-a-uuid","decisions":%s}`,
-			env.seasonID, evenDecisionsJSON()), http.StatusBadRequest},
-		{"too few decisions", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"decisions":[%s]}`,
-			env.seasonID, uuid.NewString(), strings.Join(nineRounds, ",")), http.StatusBadRequest},
-		{"negative allocation", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"decisions":%s}`,
-			env.seasonID, uuid.NewString(),
-			strings.Replace(evenDecisionsJSON(), `{"chassis":34`, `{"chassis":-34`, 1)), http.StatusBadRequest},
-		{"over budget", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"decisions":%s}`,
-			env.seasonID, uuid.NewString(),
-			strings.Replace(evenDecisionsJSON(), `{"chassis":34`, `{"chassis":400`, 1)), http.StatusBadRequest},
-		{"unknown season", fmt.Sprintf(`{"season_id":999999,"player_id":%q,"decisions":%s}`,
-			uuid.NewString(), evenDecisionsJSON()), http.StatusNotFound},
+		{"bad player id", fmt.Sprintf(`{"season_id":%d,"player_id":"not-a-uuid","picks":%s}`,
+			env.seasonID, middlePicksJSON()), http.StatusBadRequest},
+		{"too few picks", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[%s]}`,
+			env.seasonID, uuid.NewString(), strings.Join(shortPicks, ",")), http.StatusBadRequest},
+		{"negative card index", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[-1,1,1,1,1]}`,
+			env.seasonID, uuid.NewString()), http.StatusBadRequest},
+		{"card index past the deal", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[0,0,9,0,0]}`,
+			env.seasonID, uuid.NewString()), http.StatusBadRequest},
+		{"unknown season", fmt.Sprintf(`{"season_id":999999,"player_id":%q,"picks":%s}`,
+			uuid.NewString(), middlePicksJSON()), http.StatusNotFound},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -221,8 +220,8 @@ func TestSubmissionValidation(t *testing.T) {
 func TestOneSubmissionPerPlayerPerSeason(t *testing.T) {
 	env := newTestEnv(t)
 	player := uuid.NewString()
-	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"display_name":"alice","decisions":%s}`,
-		env.seasonID, player, evenDecisionsJSON())
+	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"display_name":"alice","picks":%s}`,
+		env.seasonID, player, middlePicksJSON())
 
 	if rec := env.do("POST", "/api/runs", body); rec.Code != http.StatusCreated {
 		t.Fatalf("first submission: %d %s", rec.Code, rec.Body.String())
@@ -238,8 +237,8 @@ func TestClosedSeasonRejectsSubmission(t *testing.T) {
 	// Jump the server's clock past the season's close.
 	env.srv.now = func() time.Time { return time.Now().UTC().Add(48 * time.Hour) }
 
-	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"decisions":%s}`,
-		env.seasonID, uuid.NewString(), evenDecisionsJSON())
+	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
+		env.seasonID, uuid.NewString(), middlePicksJSON())
 	rec := env.do("POST", "/api/runs", body)
 	if rec.Code != http.StatusConflict {
 		t.Errorf("status %d, want 409 for a closed season: %s", rec.Code, rec.Body.String())
@@ -252,8 +251,8 @@ func TestRateLimitOnSubmission(t *testing.T) {
 
 	codes := make([]int, 0, 4)
 	for i := 0; i < 4; i++ {
-		body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"decisions":%s}`,
-			env.seasonID, uuid.NewString(), evenDecisionsJSON())
+		body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
+			env.seasonID, uuid.NewString(), middlePicksJSON())
 		codes = append(codes, env.do("POST", "/api/runs", body).Code)
 	}
 	if codes[0] != http.StatusCreated || codes[1] != http.StatusCreated {
@@ -289,16 +288,23 @@ func TestTodaySeasonEndpoint(t *testing.T) {
 	if got.SimVersion != sim.Version {
 		t.Errorf("sim version = %q, want %q", got.SimVersion, sim.Version)
 	}
-	if len(got.Budgets) != sim.RaceCount {
-		t.Errorf("%d budgets, want %d", len(got.Budgets), sim.RaceCount)
+	for w, deal := range got.Deals {
+		for i, c := range deal {
+			if c.ID == "" || c.Name == "" {
+				t.Errorf("window %d card %d came back empty", w, i)
+			}
+		}
+	}
+	if got.WindowRounds != sim.WindowRounds {
+		t.Errorf("window rounds = %v, want %v", got.WindowRounds, sim.WindowRounds)
 	}
 }
 
 func TestLeaderboardEndpoint(t *testing.T) {
 	env := newTestEnv(t)
 	for i := 0; i < 3; i++ {
-		body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"display_name":"p%d","decisions":%s}`,
-			env.seasonID, uuid.NewString(), i, evenDecisionsJSON())
+		body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"display_name":"p%d","picks":%s}`,
+			env.seasonID, uuid.NewString(), i, middlePicksJSON())
 		if rec := env.do("POST", "/api/runs", body); rec.Code != http.StatusCreated {
 			t.Fatalf("submission %d: %d", i, rec.Code)
 		}
@@ -341,8 +347,8 @@ func TestHealthzAndMetrics(t *testing.T) {
 		t.Errorf("healthz: %d %s", rec.Code, rec.Body.String())
 	}
 
-	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"decisions":%s}`,
-		env.seasonID, uuid.NewString(), evenDecisionsJSON())
+	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
+		env.seasonID, uuid.NewString(), middlePicksJSON())
 	env.do("POST", "/api/runs", body)
 
 	rec := env.do("GET", "/metrics", "")
