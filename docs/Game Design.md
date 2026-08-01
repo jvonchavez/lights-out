@@ -8,6 +8,50 @@ against.
 
 ## The central decision
 
+> **Revised after M4.** The three-slider budget split is preserved at the end of this section,
+> along with why it was replaced.
+
+Development happens in **five windows**, before rounds 1, 3, 5, 7 and 9. At each one you are dealt
+**three parts** from a pool of twenty-four and you take one. It locks, and it fits for the rest of
+the season. The intervening races run on whatever the car already is.
+
+| | |
+|---|---|
+| **Chassis** | Cornering — dominant at technical circuits |
+| **Engine** | Top speed — dominant at power circuits |
+| **Aero** | Multiplies the whole car, capped at +31%, and is the only area that *improves* efficiency |
+
+A part's cost is the development it buys, between 140 and 260 units. Cost drives risk, which is
+quadratic in what you have banked across the season, so the fifth expensive part costs far more risk
+than the first. Aero is credited back 30% of the pressure its own share caused, which makes an
+aero-heavy card genuinely safer for its cost. **The risk pips on a card face are computed from its
+effect, never authored** — what you are shown is what the simulation applies.
+
+**What makes it a game rather than a spreadsheet:** the full calendar is visible from window one, so
+you can see that rounds 4 through 7 are power circuits and take the gearbox two windows early. And
+because the deal is random, every window is a hand you have to play rather than a form you fill in.
+The tension is the one 82-0 runs on: take the enormous aero part now, or hope a better one comes
+round while the cheap safe option sits in front of you.
+
+Development compounds — a part fitted in window 1 pays off across nine remaining races, one fitted
+in window 5 across one. Early aggression is mathematically correct and maximally risky.
+
+### Why the sliders went
+
+The sliders worked and were not fun. Measured against 82-0: randomness landed *after* the decision
+rather than before, so nothing was ever dealt to you and every round presented an identical
+surface; a season took roughly forty deliberate interactions against 82-0's five clicks; nothing had
+a name you could hold an opinion about; and the trade-off could not be stated in a sentence, so the
+UI had to explain squared risk in a paragraph above the confirm button.
+
+The simulation was never the problem — M1 had already proved its decisions mattered. The input
+surface was. So `internal/sim` kept its physics, its RNG, its parity guarantee and its verification
+model, and only the meaning of a "decision" changed: from an arbitrary allocation to an index into a
+dealt hand.
+
+<details>
+<summary>The three-slider design, superseded after M4</summary>
+
 Before each race you receive a fixed development budget and split it across three areas:
 
 | Area | Helps | Costs |
@@ -27,6 +71,9 @@ remaining races, while a point in round 9 pays off across one. Early aggression 
 correct and maximally risky, and that tension is the whole game.
 
 ---
+
+
+</details>
 
 ## Circuit profiles
 
@@ -128,20 +175,29 @@ multiplies the whole weighted sum, capped at +15%. The cap is what keeps aero fr
 engine as the single dominant answer, and makes "buy aero to the cap, then read the calendar" the
 strongest line rather than an exploit.
 
-### Final balance, 100,000 seasons × 6 strategies
+### Final balance, 100,000 seasons × 5 strategies
 
-| Strategy | Titles | Avg pts | Avg finish | Avg DNFs |
-|---|---|---|---|---|
-| aerofirst — aero to the cap early, then the calendar | 18.9% | 115.6 | 4.50 | 1.32 |
-| adaptive — follow the next two circuits | 13.8% | 107.1 | 4.91 | 1.29 |
-| even — equal thirds | 13.0% | 106.0 | 4.95 | 1.27 |
-| specialist — everything into engine | 1.6% | 71.3 | 7.18 | 1.37 |
-| aggressive — chassis and engine, front-loaded, no aero | 0.0% | 38.4 | 9.69 | 0.51 |
-| idle — spend nothing | 0.0% | 20.3 | 10.84 | 0.30 |
+| Strategy | Titles | Avg pts | Avg finish | Avg DNFs | Avg spend |
+|---|---|---|---|---|---|
+| aerofirst — buy aero to the cap, then read the calendar | 20.8% | 124.7 | 3.80 | 1.51 | 1077 |
+| greedy — always take the costliest part | 14.3% | 108.4 | 4.80 | 1.74 | 1146 |
+| adaptive — take what suits the next two races | 10.4% | 96.6 | 5.54 | 1.69 | 1109 |
+| first — always take the leftmost card | 8.1% | 90.4 | 5.91 | 1.42 | 1006 |
+| cautious — always take the cheapest part | 4.2% | 72.0 | 7.14 | 1.13 | 865 |
 
-No strategy exceeds the ~35% ceiling. The gradient from 0% to 18.9% is wide enough that decisions
-plainly matter, and the 81% of seasons the best line still loses is what keeps a daily seed worth
-replaying.
+No strategy exceeds the ~35% ceiling, and the gradient from 4.2% to 20.8% is wide enough that
+decisions plainly matter. The 79% of seasons the best line still loses is what keeps a daily seed
+worth replaying.
+
+**The card draft needed the aero cap raised**, from 150 to 310. With sliders a player could pour
+unlimited budget into aero, so the cap had to be tight. A deal of three cards constrains that on its
+own, and at 150 the deepest strategy barely separated from the crudest: aerofirst took 14.4% of
+titles against greedy's 13.9%, meaning "buy the biggest thing" was as good as understanding that
+aero compounds. Raising `PressureQuad` instead would have separated them only by pushing DNFs past
+three per season. The aero cap moves performance rather than risk, so DNF rates are untouched.
+
+Not raised further: at 400 aerofirst takes 25.1% and starts becoming the single right answer, which
+is the failure M1 originally fixed.
 
 <details>
 <summary>Original specification, superseded at M1</summary>
@@ -168,7 +224,12 @@ Ten rival teams, each with a fixed strategy archetype and a starting rating spre
 - **Specialist** — pours everything into one area, dominant at circuits that suit it
 - **Reactive** — invests toward whichever archetype dominates the next two circuits
 
-Rivals are fully deterministic given the seed. They are not adaptive to the player, which is a
+Rivals are dealt **the same three cards as the player** and choose by archetype: aggressive takes
+the costliest, conservative the cheapest, specialist whatever favours its area, reactive whatever
+suits the races just ahead. Ties break on the lowest index, so every choice is a total order.
+
+That makes rival behaviour legible — you can see which team took the part you passed on — and it
+keeps them fully deterministic given the seed. They are not adaptive to the player, which is a
 deliberate simplification: an AI that reacts to you makes the daily seed unfair, because two players
 making different early choices would face different fields.
 
@@ -184,12 +245,19 @@ sim:
 
 ```
 Lights Out · Season 142
-P2 · 287 pts · 1 DNF
+P2 of 11 · 287 pts · 1 DNF
 🏁🥈🥇🥉🏁🥇✖️🥈🥇🥈
 ```
 
-One line, no spoilers about the correct strategy, and the emoji row conveys the shape of a season at a
-glance — including the one race that went wrong.
+Three lines, no spoilers about the correct strategy, and the emoji row conveys the shape of a season
+at a glance — including the one race that went wrong.
+
+The position carries its own denominator. "P2" means nothing to someone who has never played;
+"P2 of 11" is legible cold, which is what makes 82-0's "71-11" work as a boast.
+
+**Naming your parts is opt-in.** On a shared daily seed your build *is* the strategy, so the default
+copy stays spoiler-free and a second button appends the five part names. That is the thing worth
+arguing about, and it should be a deliberate act rather than the default.
 
 ---
 

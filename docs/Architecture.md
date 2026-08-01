@@ -38,8 +38,19 @@ dual-target simulation and the verification model, not the number of moving part
 function.
 
 ```go
-func RunSeason(seed int64, decisions []Decision) (SeasonResult, error)
+// picks has one entry per development window, each an index into that
+// window's dealt cards.
+func RunSeason(seed int64, picks []int) (SeasonResult, error)
+
+// RunPartial resolves only the races a prefix of picks unlocks, so the
+// client can show the two races a window caused before dealing the next.
+func RunPartial(seed int64, picks []int) (SeasonResult, error)
 ```
+
+**Three independent RNG streams**, all derived from the seed: `seed` for season generation,
+`seed ^ 0x5EED` for race resolution, `seed ^ 0xCA4D` for card deals. Keeping them separate means
+editing the card pool cannot shift historical race outcomes, and changing generation cannot shift
+deals. Draw order is the determinism contract, and three streams keep it local.
 
 It compiles to two targets:
 
@@ -62,16 +73,25 @@ number is a problem, not preemptively.
 the WASM module, and runs the entire season client-side. Every race resolves instantly with no network
 round-trip. The player's decisions accumulate in memory.
 
-**Submitting.** The client posts `{ season_id, decisions[] }` — never a score. The server loads the
-season's seed, calls `sim.RunSeason` natively with the submitted decisions, and computes the
-authoritative result. The client's own score is not sent, not read, and not trusted.
+**Submitting.** The client posts `{ season_id, picks[] }` — never a score. The server re-derives the
+deal from the season's seed, calls `sim.RunSeason` natively with the submitted picks, and computes
+the authoritative result. The client's own score is not sent, not read, and not trusted; there is no
+field on the request struct for it to occupy.
 
-**Verification** rejects a submission when: the decision count does not match the race count, any
-allocation is negative or exceeds that race's budget, the season is closed, or this player has already
-submitted for this season. Everything the client could lie about is recomputed from the seed.
+**Verification** rejects a submission when: the pick count does not match the window count, any pick
+is outside the deal, the season is closed, the season was published under a different sim version,
+or this player has already submitted for this season. Everything the client could lie about is
+recomputed from the seed.
 
-This is the property that makes determinism load-bearing rather than a stylistic preference. A
-cheater would have to find decisions that genuinely produce a high score — which is just playing well.
+Picks make the attack surface smaller than allocations did — a client cannot describe a development
+that was never offered. What they do not do is make the game unsearchable: 243 lines is trivially
+enumerable client-side. See "What the verification does and does not claim" in `_README.md`; the
+honest claim is that scores cannot be fabricated, not that they cannot be searched for.
+
+**The sim version gate is enforced, not documented.** A season is verified under the version it was
+published with. Replaying the same picks under changed rules produces a different score, so a
+submission to a season from another ruleset is a 409 naming both versions — otherwise a deploy would
+silently corrupt an open leaderboard mid-day.
 
 ## Data model
 

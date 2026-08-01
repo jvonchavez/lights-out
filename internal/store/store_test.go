@@ -172,11 +172,15 @@ func TestOneRunPerPlayerPerSeason(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := sim.RunSeason(7, sim.Strategy("even", sim.GenerateSeason(7)))
+	picks := sim.Strategy("adaptive", sim.GenerateSeason(7))
+	if picks == nil {
+		t.Fatal("unknown strategy name -- the strategy list changed")
+	}
+	res, err := sim.RunSeason(7, picks)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decisions, _ := json.Marshal(sim.Strategy("even", sim.GenerateSeason(7)))
+	decisions, _ := json.Marshal(picks)
 	full, _ := json.Marshal(res)
 	params := SaveRunParams{
 		SeasonID: seasonID, PlayerID: playerID, Decisions: decisions,

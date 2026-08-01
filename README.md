@@ -1,9 +1,9 @@
 # Lights Out
 
 A daily browser game where you run an F1 team through a 10-race season. The racing is simulated —
-you never drive. Your only decisions happen *between* races: split a fixed development budget across
-chassis, engine, and aero, knowing that every point spent on performance costs reliability, and a
-reliability failure scores zero.
+you never drive. Five times across the season you are dealt three parts and take one. It locks, it
+fits for the rest of the year, and every part you bolt on costs reliability. A failure scores zero,
+and there are only ten races.
 
 Everyone in the world gets the same season seed each day. Same calendar, same starting ratings, same
 rival AI, same random stream. The luck is identical for everyone, so the leaderboard measures
@@ -11,9 +11,12 @@ decisions and nothing else.
 
 ```
 Lights Out · Season 454
-P3 · 120 pts · 1 DNF
+P3 of 11 · 120 pts · 1 DNF
 🏁🥉🥈🏁🏁🥉🏁🏁🏁✖️
 ```
+
+Five clicks, about a minute. The whole calendar is visible from the first window, so you can see the
+power circuits coming and take the gearbox early — or gamble that something better comes round.
 
 ## The detail worth leading with
 
@@ -24,11 +27,14 @@ locally with no network round-trips. There is one implementation, so the client 
 disagree about the rules — and a parity test asserts both targets produce byte-identical JSON across
 3,000 seeds.
 
-That is what makes the leaderboard trustworthy. The client posts *only its ten decisions* — never a
-score. `submitRequest` has no score field at all, so a forged number has nowhere to be decoded to
-and is discarded before any code could believe it. The server re-runs those decisions from the
-season's own seed. A cheater would have to find decisions that genuinely produce a high score, which
-is just playing well.
+That is what makes the leaderboard trustworthy. The client posts *only its five card indices* —
+never a score. `submitRequest` has no score field at all, so a forged number has nowhere to be
+decoded to and is discarded before any code could believe it. The server re-derives the deal from
+the season's own seed and replays the picks itself, so scores cannot be fabricated.
+
+They can be searched for, though, and the docs say so: 243 possible lines is trivially enumerable
+when the simulation runs in your browser. Wordle is solvable too. The honest claim is that the
+server is the sole authority on what a set of picks is worth — not that nobody can run a solver.
 
 **Determinism is structural, not hoped for.** Every number in the sim is `int64` fixed-point, and
 the normal distribution comes from a sum of twelve uniforms rather than Box–Muller. Go's assembly
@@ -79,23 +85,23 @@ several instances can run it with no leader election.
 
 ## What the balance runs found
 
-`cmd/balance` runs 100,000 seasons across a worker pool (~115k seasons/sec on 8 cores) and reports
-how each scripted strategy fares. It changed the game design four times — the reliability model was
-mathematically degenerate, a whole budget slider turned out to be a trap and was cut, the player had
-no ceiling, and aero had to multiply rather than add. `docs/Game Design.md` records each finding,
-the measurement behind it, and the original specification it replaced.
+`cmd/balance` runs 100,000 seasons across a worker pool (~110k seasons/sec on 8 cores) and reports
+how each scripted strategy fares. It has changed the game design five times — the reliability model
+was mathematically degenerate, a whole budget slider turned out to be a trap and was cut, the player
+had no ceiling, aero had to multiply rather than add, and the card draft needed the aero cap more
+than doubled before understanding the game beat simply buying the biggest part. `docs/Game Design.md`
+records each finding, the measurement behind it, and the specification it replaced.
 
-Final spread over 100k seasons — no strategy wins more than 18.9%, and the gradient from 0% to
-18.9% is wide enough that decisions plainly matter:
+Final spread over 100k seasons — no strategy wins more than 20.8%, and the gradient from 4.2% to
+20.8% is wide enough that decisions plainly matter:
 
 | Strategy | Titles | Avg pts | Avg finish |
 |---|---|---|---|
-| aero to the cap early, then the calendar | 18.9% | 115.6 | 4.50 |
-| follow the next two circuits | 13.8% | 107.1 | 4.91 |
-| equal thirds | 13.0% | 106.0 | 4.95 |
-| everything into engine | 1.6% | 71.3 | 7.18 |
-| chassis and engine, front-loaded, no aero | 0.0% | 38.4 | 9.69 |
-| spend nothing | 0.0% | 20.3 | 10.84 |
+| buy aero to the cap, then read the calendar | 20.8% | 124.7 | 3.80 |
+| always take the costliest part | 14.3% | 108.4 | 4.80 |
+| take what suits the next two races | 10.4% | 96.6 | 5.54 |
+| always take the leftmost card | 8.1% | 90.4 | 5.91 |
+| always take the cheapest part | 4.2% | 72.0 | 7.14 |
 
 ## Design documents
 

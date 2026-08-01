@@ -3,8 +3,8 @@
 **Status:** planning · **Started:** 2026-07-28 · **Language:** Go + TypeScript
 
 A browser game where you run an F1 team through a 10-race season. The racing itself is simulated —
-you never drive. Your only decisions happen *between* races: split a fixed development budget across
-chassis, engine, and aero, knowing that every point spent on performance costs reliability, and a
+you never drive. Your only decisions happen *between* races: across five development windows you are
+dealt three parts and take one, knowing that every part you bolt on costs reliability, and a
 reliability failure scores zero.
 
 Everyone in the world gets the same season seed each day. Same calendar, same starting ratings, same
@@ -26,13 +26,13 @@ decisions and nothing else.
 
 ## MVP definition
 
-A player loads the site, sees today's season, plays through 10 races making one budget allocation
-before each, and lands on the leaderboard against everyone else who played the same seed. Their score
-is verified server-side before it counts.
+A player loads the site, sees today's season, drafts a car across five windows, watches ten races
+resolve, and lands on the leaderboard against everyone else who played the same seed. Their score is
+verified server-side before it counts.
 
-**In scope:** 10-race calendar, 3 development sliders, 10 rival teams with their own AI development
-strategies, qualifying and race simulation, reliability failures, championship standings, daily seed,
-verified leaderboard, shareable result string.
+**In scope:** 10-race calendar, 5 development windows dealing 3 cards each, 10 rival teams with their
+own AI development strategies, qualifying and race simulation, reliability failures, championship
+standings, daily seed, verified leaderboard, shareable result string.
 
 **Out of scope:** driver transfers, multi-season careers, pit strategy, tyre compounds, weather,
 accounts, and anything resembling login. Player identity is a UUID in `localStorage` and a display
@@ -62,3 +62,21 @@ There is no second implementation, so there is no drift between them — and a p
 both targets produce identical output across thousands of seeds.
 
 That is what makes the leaderboard trustworthy, and it is the thing to talk about in an interview.
+
+## What the verification does and does not claim
+
+The server is the sole authority on what a set of picks is worth. It re-derives the deal from the
+season's seed, replays the picks, and computes the score itself; the client sends card indices and
+nothing else, and `submitRequest` has no score field at all, so a forged number has nowhere to be
+decoded to. **Scores cannot be fabricated.**
+
+They can, however, be *searched for*. Five windows of three cards is 243 possible seasons, and the
+WASM module runs locally, so anyone can enumerate every line in milliseconds and submit the best.
+An earlier draft of this document claimed a cheater "would have to find decisions that genuinely
+produce a high score, which is just playing well" — that was true of the continuous sliders and is
+not true of a card draft. It is stated here rather than quietly dropped.
+
+This is accepted. Wordle's answer space is roughly 2,300 words and solvers crack it instantly; it
+remains a phenomenon because the fun is doing it yourself. Nothing resists brute force when the
+simulation runs client-side, and the alternative — hiding the rules from the browser — would cost
+the dual-target design that is the actual point of this project.
