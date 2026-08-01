@@ -1,4 +1,4 @@
-import type { Decision, LeaderboardEntry, SeasonDescriptor, SeasonResult } from './types';
+import type { LeaderboardEntry, SeasonDescriptor, SeasonResult } from './types';
 
 const PLAYER_ID_KEY = 'lightsout.playerId';
 const NAME_KEY = 'lightsout.displayName';
@@ -66,13 +66,13 @@ export interface SubmitResponse {
 }
 
 /**
- * submitRun posts the decisions and nothing else. The score is deliberately
- * not sent: the server re-runs these decisions and computes the
- * authoritative result itself.
+ * submitRun posts the card indices and nothing else. The score is
+ * deliberately not sent: the server re-derives the deal from the season's
+ * seed, replays these picks, and computes the authoritative result itself.
  */
 export function submitRun(
   seasonId: number,
-  decisions: Decision[],
+  picks: number[],
   name: string,
 ): Promise<SubmitResponse> {
   return fetch('/api/runs', {
@@ -82,7 +82,7 @@ export function submitRun(
       season_id: seasonId,
       player_id: playerId(),
       display_name: name,
-      decisions,
+      picks,
     }),
   }).then(json<SubmitResponse>);
 }

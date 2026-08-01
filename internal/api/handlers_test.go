@@ -420,3 +420,35 @@ func grepLines(body, needle string) string {
 	}
 	return strings.Join(out, "\n")
 }
+
+func TestSeasonFromAnotherRulesetIsRejected(t *testing.T) {
+	// docs/Architecture.md: a season is verified under the version it was
+	// published with, and old seasons are frozen. Replaying the same picks
+	// under changed rules produces a different score, so accepting this
+	// would silently corrupt a leaderboard the moment a deploy lands.
+	env := newTestEnv(t)
+	ctx := context.Background()
+
+	day := time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)
+	stale, err := env.store.CreateSeason(ctx, store.CreateSeasonParams{
+		Seed:       env.seed,
+		SimVersion: "0.0.1-ancient",
+		Calendar:   []byte(`[]`),
+		Field:      []byte(`[]`),
+		Day:        day,
+		ClosesAt:   time.Now().UTC().Add(24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
+		stale.ID, uuid.NewString(), middlePicksJSON())
+	rec := env.do("POST", "/api/runs", body)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("status %d, want 409 for a season from another ruleset: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "0.0.1-ancient") {
+		t.Errorf("error should name the season's ruleset: %s", rec.Body.String())
+	}
+}

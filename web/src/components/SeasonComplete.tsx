@@ -19,15 +19,21 @@ export function SeasonComplete({
   name: string;
   onNameChange: (v: string) => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'plain' | 'build' | null>(null);
 
-  async function copy() {
+  // The default share stays spoiler-free: on a shared daily seed your parts
+  // ARE the strategy, so naming them gives the day away. Copying with the
+  // build is a separate, deliberate act -- which is what makes an argument
+  // about your picks possible without spoiling anyone who has not played.
+  const withBuild = `${result.share}\n${result.build.map((c) => c.name).join(' · ')}`;
+
+  async function copy(which: 'plain' | 'build') {
     try {
-      await navigator.clipboard.writeText(result.share);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(which === 'plain' ? result.share : withBuild);
+      setCopied(which);
+      setTimeout(() => setCopied(null), 1800);
     } catch {
-      setCopied(false);
+      setCopied(null);
     }
   }
 
@@ -58,12 +64,22 @@ export function SeasonComplete({
         {result.share}
       </pre>
 
-      <button
-        onClick={copy}
-        className="mt-2 rounded border border-edge px-3 py-1.5 text-xs text-muted transition hover:border-muted hover:text-slate-100"
-      >
-        {copied ? 'Copied' : 'Copy result'}
-      </button>
+      <div className="mt-2 flex gap-2">
+        <button
+          data-testid="copy-plain"
+          onClick={() => copy('plain')}
+          className="rounded border border-edge px-3 py-1.5 text-xs text-muted transition hover:border-muted hover:text-slate-100"
+        >
+          {copied === 'plain' ? 'Copied' : 'Copy result'}
+        </button>
+        <button
+          data-testid="copy-build"
+          onClick={() => copy('build')}
+          className="rounded border border-edge px-3 py-1.5 text-xs text-muted transition hover:border-muted hover:text-slate-100"
+        >
+          {copied === 'build' ? 'Copied' : 'Copy with build'}
+        </button>
+      </div>
 
       {!submitted && (
         <div className="mt-6 border-t border-edge pt-4">

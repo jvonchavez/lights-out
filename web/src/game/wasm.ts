@@ -1,4 +1,4 @@
-import type { Decision, SeasonDescriptor, SeasonResult } from './types';
+import type { SeasonDescriptor, SeasonResult } from './types';
 
 /** The functions the Go WASM module installs on globalThis. */
 declare global {
@@ -7,7 +7,8 @@ declare global {
       importObject: WebAssembly.Imports;
       run(instance: WebAssembly.Instance): Promise<void>;
     };
-    lightsOutRunSeason?: (seed: string, decisionsJSON: string) => string;
+    lightsOutRunSeason?: (seed: string, picksJSON: string) => string;
+    lightsOutRunPartial?: (seed: string, picksJSON: string) => string;
     lightsOutGenerateSeason?: (seed: string) => string;
     lightsOutVersion?: string;
   }
@@ -15,7 +16,9 @@ declare global {
 
 export interface SimAPI {
   version: string;
-  runSeason(seed: string, decisions: Decision[]): SeasonResult;
+  runSeason(seed: string, picks: number[]): SeasonResult;
+  /** Resolves only the races a prefix of picks unlocks. */
+  runPartial(seed: string, picks: number[]): SeasonResult;
   generateSeason(seed: string): SeasonDescriptor;
 }
 
@@ -50,8 +53,11 @@ export function loadSim(): Promise<SimAPI> {
     }
     return {
       version: window.lightsOutVersion ?? 'unknown',
-      runSeason(seed, decisions) {
-        return unwrap<SeasonResult>(window.lightsOutRunSeason!(seed, JSON.stringify(decisions)));
+      runSeason(seed, picks) {
+        return unwrap<SeasonResult>(window.lightsOutRunSeason!(seed, JSON.stringify(picks)));
+      },
+      runPartial(seed, picks) {
+        return unwrap<SeasonResult>(window.lightsOutRunPartial!(seed, JSON.stringify(picks)));
       },
       generateSeason(seed) {
         return unwrap<SeasonDescriptor>(window.lightsOutGenerateSeason!(seed));

@@ -1,26 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import {
-  reducer,
-  initialState,
-  emptyDecision,
-  budgetFor,
-  remaining,
-  spent,
-  type GameState,
-} from './reducer';
-import type { SeasonDescriptor } from './types';
+import { reducer, initialState, currentDeal, revealComplete, type GameState } from './reducer';
+import { riskPips, effectLabel, type Card, type SeasonDescriptor, type SeasonResult } from './types';
+
+const card = (id: string, chassis: number, engine: number, aero: number): Card => ({
+  id,
+  name: id.toUpperCase(),
+  blurb: 'a part',
+  effect: { chassis, engine, aero },
+});
 
 const season: SeasonDescriptor = {
   id: 1,
   seed: '2497907803379454',
-  sim_version: '1.1.0',
+  sim_version: '2.0.0',
   calendar: Array.from({ length: 10 }, (_, i) => ({
     name: `Circuit ${i + 1}`,
     archetype: 'balanced' as const,
     profile: { chassis: 350, engine: 350, aero: 300, overtake_difficulty: 280 },
   })),
   field: [],
-  budgets: Array(10).fill(100),
+  deals: Array.from({ length: 5 }, (_, w) => [
+    card(`a${w}`, 250, 0, 0),
+    card(`b${w}`, 0, 250, 0),
+    card(`c${w}`, 0, 0, 250),
+  ]),
+  window_rounds: [0, 2, 4, 6, 8],
   closes_at: '2026-09-03T00:00:00Z',
 };
 
@@ -28,133 +32,155 @@ function loaded(): GameState {
   return reducer(initialState, { type: 'SEASON_LOADED', season });
 }
 
+function resultWith(races: number): SeasonResult {
+  return {
+    sim_version: '2.0.0',
+    seed: 1,
+    build: [],
+    races: Array.from({ length: races }, (_, i) => ({
+      round: i + 1,
+      circuit: 'x',
+      safety_car: false,
+      cars: [],
+    })),
+    standings: [],
+    player: { team_id: 0, name: 'you', points: 0, wins: 0, podiums: 0, dnfs: 0 },
+    player_position: 1,
+    share: '',
+  };
+}
+
 describe('SEASON_LOADED', () => {
-  it('moves to allocating with an empty allocation', () => {
+  it('opens on the first window with nothing picked', () => {
     const s = loaded();
-    expect(s.phase).toBe('allocating');
-    expect(s.round).toBe(0);
-    expect(s.allocation).toEqual(emptyDecision);
-    expect(budgetFor(s)).toBe(100);
+    expect(s.phase).toBe('choosing');
+    expect(s.window).toBe(0);
+    expect(s.pick).toBeNull();
+    expect(currentDeal(s)).toHaveLength(3);
   });
 });
 
-describe('ALLOCATE', () => {
-  it('sets a value within budget', () => {
-    const s = reducer(loaded(), { type: 'ALLOCATE', area: 'chassis', value: 40 });
-    expect(s.allocation.chassis).toBe(40);
-    expect(remaining(s)).toBe(60);
+describe('PICK_CARD', () => {
+  it('highlights a card without committing it', () => {
+    const s = reducer(loaded(), { type: 'PICK_CARD', index: 2 });
+    expect(s.pick).toBe(2);
+    expect(s.picks).toEqual([]);
   });
 
-  it('clamps so the sliders can never exceed the budget', () => {
-    let s = loaded();
-    s = reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 60 });
-    s = reducer(s, { type: 'ALLOCATE', area: 'engine', value: 60 });
-    expect(spent(s.allocation)).toBeLessThanOrEqual(100);
-    expect(s.allocation.engine).toBe(40);
+  it('ignores an index outside the deal', () => {
+    const base = loaded();
+    expect(reducer(base, { type: 'PICK_CARD', index: 3 })).toBe(base);
+    expect(reducer(base, { type: 'PICK_CARD', index: -1 })).toBe(base);
   });
 
-  it('clamps negatives to zero', () => {
-    const s = reducer(loaded(), { type: 'ALLOCATE', area: 'aero', value: -20 });
-    expect(s.allocation.aero).toBe(0);
+  it('lets the highlight change before committing', () => {
+    let s = reducer(loaded(), { type: 'PICK_CARD', index: 0 });
+    s = reducer(s, { type: 'PICK_CARD', index: 1 });
+    expect(s.pick).toBe(1);
   });
 
-  it('floors fractional values, because the server takes integers', () => {
-    const s = reducer(loaded(), { type: 'ALLOCATE', area: 'aero', value: 33.7 });
-    expect(s.allocation.aero).toBe(33);
-  });
-
-  it('lets an area be reduced to free up budget', () => {
-    let s = loaded();
-    s = reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 100 });
-    expect(remaining(s)).toBe(0);
-    s = reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 20 });
-    expect(remaining(s)).toBe(80);
-    s = reducer(s, { type: 'ALLOCATE', area: 'engine', value: 50 });
-    expect(s.allocation.engine).toBe(50);
-  });
-
-  it('is ignored outside the allocating phase', () => {
-    const s = { ...loaded(), phase: 'complete' as const };
-    expect(reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 50 })).toBe(s);
+  it('is ignored outside the choosing phase', () => {
+    const s = { ...loaded(), phase: 'racing' as const };
+    expect(reducer(s, { type: 'PICK_CARD', index: 1 })).toBe(s);
   });
 });
 
-describe('CONFIRM_RACE', () => {
-  it('records the decision and advances the round', () => {
-    let s = loaded();
-    s = reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 50 });
-    s = reducer(s, { type: 'CONFIRM_RACE' });
-    expect(s.decisions).toHaveLength(1);
-    expect(s.decisions[0].chassis).toBe(50);
-    expect(s.round).toBe(1);
-    expect(s.allocation).toEqual(emptyDecision);
-    expect(s.phase).toBe('allocating');
+describe('CONFIRM_PICK', () => {
+  it('commits the highlighted card and starts racing', () => {
+    let s = reducer(loaded(), { type: 'PICK_CARD', index: 2 });
+    s = reducer(s, { type: 'CONFIRM_PICK' });
+    expect(s.picks).toEqual([2]);
+    expect(s.pick).toBeNull();
+    expect(s.phase).toBe('racing');
   });
 
-  it('allows underspending', () => {
-    let s = loaded();
-    s = reducer(s, { type: 'CONFIRM_RACE' });
-    expect(s.decisions[0]).toEqual(emptyDecision);
+  it('does nothing when no card is highlighted', () => {
+    const base = loaded();
+    expect(reducer(base, { type: 'CONFIRM_PICK' })).toBe(base);
   });
 
-  it('moves to reviewing after the final round', () => {
+  it('never commits more picks than there are windows', () => {
     let s = loaded();
-    for (let i = 0; i < 10; i++) {
-      s = reducer(s, { type: 'ALLOCATE', area: 'aero', value: 30 });
-      s = reducer(s, { type: 'CONFIRM_RACE' });
+    for (let w = 0; w < 5; w++) {
+      s = reducer(s, { type: 'PICK_CARD', index: w % 3 });
+      s = reducer(s, { type: 'CONFIRM_PICK' });
+      s = reducer(s, { type: 'RACES_RESOLVED', result: resultWith((w + 1) * 2) });
+      s = reducer(s, { type: 'NEXT_WINDOW' });
     }
-    expect(s.decisions).toHaveLength(10);
-    expect(s.phase).toBe('reviewing');
-    expect(s.round).toBe(9);
+    expect(s.picks).toHaveLength(5);
+    expect(s.phase).toBe('complete');
   });
+});
 
-  it('never produces an over-budget decision across a whole season', () => {
-    let s = loaded();
-    for (let i = 0; i < 10; i++) {
-      s = reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 999 });
-      s = reducer(s, { type: 'ALLOCATE', area: 'engine', value: 999 });
-      s = reducer(s, { type: 'ALLOCATE', area: 'aero', value: 999 });
-      s = reducer(s, { type: 'CONFIRM_RACE' });
-    }
-    for (const d of s.decisions) {
-      expect(spent(d)).toBeLessThanOrEqual(100);
-    }
+describe('NEXT_WINDOW', () => {
+  it('advances the window to match committed picks', () => {
+    let s = reducer(loaded(), { type: 'PICK_CARD', index: 0 });
+    s = reducer(s, { type: 'CONFIRM_PICK' });
+    s = reducer(s, { type: 'RACES_RESOLVED', result: resultWith(2) });
+    s = reducer(s, { type: 'NEXT_WINDOW' });
+    expect(s.window).toBe(1);
+    expect(s.phase).toBe('choosing');
+    expect(currentDeal(s)[0].id).toBe('a1');
   });
 });
 
 describe('REVEAL_NEXT', () => {
   it('reveals races one at a time and stops at the end', () => {
-    const result = {
-      sim_version: '1.1.0',
-      seed: 1,
-      races: Array.from({ length: 3 }, (_, i) => ({
-        round: i + 1,
-        circuit: 'x',
-        safety_car: false,
-        cars: [],
-      })),
-      standings: [],
-      player: { team_id: 0, name: 'you', points: 0, wins: 0, podiums: 0, dnfs: 0 },
-      player_position: 1,
-      share: '',
-    };
-    let s = reducer({ ...loaded(), phase: 'reviewing' }, { type: 'SEASON_RESOLVED', result });
-    expect(s.phase).toBe('complete');
+    let s = reducer(loaded(), { type: 'RACES_RESOLVED', result: resultWith(4) });
     expect(s.revealed).toBe(0);
-    for (let i = 0; i < 5; i++) s = reducer(s, { type: 'REVEAL_NEXT' });
-    expect(s.revealed).toBe(3);
+    expect(revealComplete(s)).toBe(false);
+    for (let i = 0; i < 6; i++) s = reducer(s, { type: 'REVEAL_NEXT' });
+    expect(s.revealed).toBe(4);
+    expect(revealComplete(s)).toBe(true);
+  });
+
+  it('does nothing before any races resolve', () => {
+    const base = loaded();
+    expect(reducer(base, { type: 'REVEAL_NEXT' })).toBe(base);
+  });
+
+  it('keeps what was already revealed when more races arrive', () => {
+    let s = reducer(loaded(), { type: 'RACES_RESOLVED', result: resultWith(2) });
+    s = reducer(s, { type: 'REVEAL_NEXT' });
+    s = reducer(s, { type: 'REVEAL_NEXT' });
+    expect(s.revealed).toBe(2);
+    s = reducer(s, { type: 'RACES_RESOLVED', result: resultWith(4) });
+    expect(s.revealed).toBe(2);
+    expect(revealComplete(s)).toBe(false);
   });
 });
 
 describe('RESET', () => {
-  it('returns to a fresh allocation but keeps the season', () => {
-    let s = loaded();
-    s = reducer(s, { type: 'ALLOCATE', area: 'chassis', value: 50 });
-    s = reducer(s, { type: 'CONFIRM_RACE' });
+  it('returns to the first window but keeps the season', () => {
+    let s = reducer(loaded(), { type: 'PICK_CARD', index: 1 });
+    s = reducer(s, { type: 'CONFIRM_PICK' });
     s = reducer(s, { type: 'RESET' });
-    expect(s.decisions).toEqual([]);
-    expect(s.round).toBe(0);
-    expect(s.phase).toBe('allocating');
+    expect(s.picks).toEqual([]);
+    expect(s.window).toBe(0);
+    expect(s.phase).toBe('choosing');
     expect(s.season).toBe(season);
+  });
+});
+
+describe('card presentation', () => {
+  it('scores an expensive card riskier than a cheap one', () => {
+    expect(riskPips(card('big', 260, 0, 0))).toBeGreaterThan(riskPips(card('small', 140, 0, 0)));
+  });
+
+  it('scores an aero card safer than an engine card of equal cost', () => {
+    expect(riskPips(card('aero', 0, 0, 250))).toBeLessThan(riskPips(card('eng', 0, 250, 0)));
+  });
+
+  it('always returns a pip count in range', () => {
+    for (const c of [card('z', 0, 0, 0), card('big', 260, 260, 260), card('s', 140, 0, 0)]) {
+      const p = riskPips(c);
+      expect(p).toBeGreaterThanOrEqual(1);
+      expect(p).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('labels only the areas a card touches', () => {
+    expect(effectLabel(card('x', 0, 120, 80))).toBe('+12 Engine · +8 Aero');
+    expect(effectLabel(card('y', 250, 0, 0))).toBe('+25 Chassis');
   });
 });

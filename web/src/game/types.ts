@@ -8,6 +8,14 @@ export interface Decision {
   aero: number;
 }
 
+/** One development part. Effect is the budget allocation it represents. */
+export interface Card {
+  id: string;
+  name: string;
+  blurb: string;
+  effect: Decision;
+}
+
 export interface CircuitProfile {
   chassis: number;
   engine: number;
@@ -62,6 +70,8 @@ export interface Standing {
 export interface SeasonResult {
   sim_version: string;
   seed: number;
+  /** The cards the player took, in window order. */
+  build: Card[];
   races: RaceResult[];
   standings: Standing[];
   player: Standing;
@@ -77,7 +87,10 @@ export interface SeasonDescriptor {
   sim_version: string;
   calendar: Circuit[];
   field: Team[];
-  budgets: number[];
+  /** Three cards per development window, derived from the seed. */
+  deals: Card[][];
+  /** 0-based rounds a window precedes. */
+  window_rounds: number[];
   closes_at: string;
 }
 
@@ -96,6 +109,36 @@ export const AREA_LABELS: Record<keyof Decision, string> = {
   engine: 'Engine',
   aero: 'Aero',
 };
+
+/** Card cost bounds, mirroring MinCardCost/MaxCardCost in the sim. */
+export const MIN_CARD_COST = 140;
+export const MAX_CARD_COST = 260;
+
+/**
+ * riskPips scores a card 1-5 for display. Risk is quadratic in cumulative
+ * spend and aero is credited back 30% of the pressure its own share caused,
+ * so an expensive card is riskier and an aero-heavy one less so. The pips
+ * are derived from the effect, never authored: what you see is the real
+ * risk the simulation will apply.
+ */
+export function riskPips(c: Card): number {
+  const cost = c.effect.chassis + c.effect.engine + c.effect.aero;
+  if (cost === 0) return 1;
+  const aeroShare = c.effect.aero / cost;
+  const relief = 1 - 0.3 * aeroShare;
+  const span = MAX_CARD_COST - MIN_CARD_COST;
+  const norm = ((cost - MIN_CARD_COST) / span) * relief;
+  return Math.max(1, Math.min(5, Math.round(1 + norm * 4)));
+}
+
+/** Human-readable effect, e.g. "+12 Engine · +8 Aero". Units are tenths. */
+export function effectLabel(c: Card): string {
+  const parts: string[] = [];
+  if (c.effect.chassis > 0) parts.push(`+${Math.round(c.effect.chassis / 10)} Chassis`);
+  if (c.effect.engine > 0) parts.push(`+${Math.round(c.effect.engine / 10)} Engine`);
+  if (c.effect.aero > 0) parts.push(`+${Math.round(c.effect.aero / 10)} Aero`);
+  return parts.join(' · ');
+}
 
 export const ARCHETYPE_LABELS: Record<Circuit['archetype'], string> = {
   power: 'Power',

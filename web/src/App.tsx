@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { reducer, initialState, budgetFor, remaining, spent } from './game/reducer';
+import { reducer, initialState, currentDeal, revealComplete } from './game/reducer';
 import { loadSim, type SimAPI } from './game/wasm';
 import {
   fetchLeaderboard,
@@ -8,13 +8,17 @@ import {
   displayName,
   setDisplayName,
 } from './game/api';
-import type { Decision, LeaderboardEntry } from './game/types';
+import type { LeaderboardEntry } from './game/types';
 import { Calendar } from './components/Calendar';
-import { AllocationSliders } from './components/AllocationSliders';
+import { CardChoice } from './components/CardChoice';
+import { Build } from './components/Build';
 import { RaceResults } from './components/RaceResults';
 import { Standings } from './components/Standings';
 import { SeasonComplete } from './components/SeasonComplete';
 import { Leaderboard } from './components/Leaderboard';
+
+/** How long each race lingers before the next is revealed. */
+const REVEAL_MS = 700;
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -25,9 +29,9 @@ export default function App() {
   const [board, setBoard] = useState<LeaderboardEntry[] | null>(null);
   const simRef = useRef<SimAPI | null>(null);
 
-  // The calendar renders from the API response, so the season loads without
-  // waiting on the ~1.25 MB WASM module. The module is fetched alongside and
-  // is only needed once the tenth decision is confirmed.
+  // The deals come from the API, so the first choice renders without
+  // waiting on the ~1.26 MB WASM module. It is needed only once a pick is
+  // committed and races have to resolve.
   useEffect(() => {
     fetchTodaySeason()
       .then((season) => dispatch({ type: 'SEASON_LOADED', season }))
@@ -41,23 +45,32 @@ export default function App() {
       .catch((e: Error) => dispatch({ type: 'LOAD_FAILED', error: e.message }));
   }, []);
 
-  // Once every round is allocated, play the whole season locally. There is
-  // no network round-trip: this is the same simulation the server runs.
+  // Each committed pick unlocks two more races. Resolve just those, so a
+  // window has a visible consequence instead of ten races arriving at once.
   useEffect(() => {
-    if (state.phase !== 'reviewing' || !state.season) return;
+    if (state.phase !== 'racing' || !state.season) return;
     const api = simRef.current;
     if (!api) return;
     try {
-      const result = api.runSeason(state.season.seed, state.decisions);
-      dispatch({ type: 'SEASON_RESOLVED', result });
+      const result = api.runPartial(state.season.seed, state.picks);
+      dispatch({ type: 'RACES_RESOLVED', result });
     } catch (e) {
       dispatch({ type: 'LOAD_FAILED', error: (e as Error).message });
     }
-  }, [state.phase, state.season, state.decisions, sim]);
+  }, [state.phase, state.season, state.picks, sim]);
 
-  const onAllocate = useCallback((area: keyof Decision, value: number) => {
-    dispatch({ type: 'ALLOCATE', area, value });
-  }, []);
+  // Reveal newly resolved races one at a time, then move on.
+  useEffect(() => {
+    if (!state.result) return;
+    if (!revealComplete(state)) {
+      const t = setTimeout(() => dispatch({ type: 'REVEAL_NEXT' }), REVEAL_MS);
+      return () => clearTimeout(t);
+    }
+    if (state.phase === 'racing') {
+      const t = setTimeout(() => dispatch({ type: 'NEXT_WINDOW' }), REVEAL_MS);
+      return () => clearTimeout(t);
+    }
+  }, [state.result, state.revealed, state.phase]);
 
   const onSubmit = useCallback(async () => {
     if (!state.season) return;
@@ -65,7 +78,7 @@ export default function App() {
     setSubmitError(null);
     try {
       setDisplayName(name);
-      await submitRun(state.season.id, state.decisions, name || 'Anonymous');
+      await submitRun(state.season.id, state.picks, name || 'Anonymous');
       dispatch({ type: 'SUBMITTED' });
       setBoard(await fetchLeaderboard(state.season.id));
     } catch (e) {
@@ -73,7 +86,7 @@ export default function App() {
     } finally {
       setSubmitting(false);
     }
-  }, [state.season, state.decisions, name]);
+  }, [state.season, state.picks, name]);
 
   if (state.phase === 'error') {
     return (
@@ -94,88 +107,87 @@ export default function App() {
   }
 
   const { season } = state;
-  const circuit = season.calendar[state.round];
-  const playerRaces =
-    state.result?.races.map((r) => {
-      const me = r.cars.find((c) => c.team_id === 0)!;
-      return { finish: me.finish, dnf: me.dnf, points: me.points };
-    }) ?? undefined;
+  const shown = state.result?.races.slice(0, state.revealed) ?? [];
+  const playerRaces = shown.map((r) => {
+    const me = r.cars.find((c) => c.team_id === 0)!;
+    return { finish: me.finish, dnf: me.dnf, points: me.points };
+  });
+  const windowRound = season.window_rounds[state.window] ?? 0;
+  const nextRaces = season.calendar.slice(windowRound, windowRound + 2);
 
   return (
     <Shell>
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div className="space-y-5">
-          {state.phase === 'allocating' && (
+          {state.phase === 'choosing' && (
             <>
               <div className="rounded-lg border border-edge bg-panel px-5 py-4">
                 <p className="text-xs uppercase tracking-widest text-muted">
-                  Round {state.round + 1} of {season.calendar.length}
+                  Development window {state.window + 1} of {season.deals.length}
                 </p>
-                <h1 className="mt-1 text-2xl font-bold">{circuit.name}</h1>
+                <h1 className="mt-1 text-2xl font-bold">Choose one part</h1>
                 <p className="mt-1 text-sm text-muted">
-                  Budget {budgetFor(state)} · {remaining(state)} unspent
+                  It fits for the rest of the season. Every part you bolt on raises performance and
+                  lowers reliability.
                 </p>
               </div>
-
-              <AllocationSliders
-                allocation={state.allocation}
-                budget={budgetFor(state)}
-                circuit={circuit}
-                onChange={onAllocate}
+              <CardChoice
+                deal={currentDeal(state)}
+                picked={state.pick}
+                races={nextRaces}
+                onPick={(i) => dispatch({ type: 'PICK_CARD', index: i })}
+                onConfirm={() => dispatch({ type: 'CONFIRM_PICK' })}
               />
-
-              <button
-                data-testid="confirm-race"
-                onClick={() => dispatch({ type: 'CONFIRM_RACE' })}
-                className="w-full rounded bg-accent py-3 text-sm font-semibold text-white transition hover:brightness-110"
-              >
-                {state.round + 1 === season.calendar.length
-                  ? 'Run the final race'
-                  : `Run race ${state.round + 1}`}
-                {spent(state.allocation) === 0 && ' (spending nothing)'}
-              </button>
             </>
           )}
 
-          {state.phase === 'reviewing' && (
-            <div className="rounded-lg border border-edge bg-panel p-6">
-              <p className="text-muted" data-testid="simulating">
-                {sim ? 'Running the season…' : 'Loading the simulation…'}
-              </p>
+          {state.phase === 'racing' && (
+            <div className="rounded-lg border border-edge bg-panel px-5 py-4" data-testid="racing">
+              <p className="text-xs uppercase tracking-widest text-muted">Racing</p>
+              <h1 className="mt-1 text-2xl font-bold">
+                {shown.length > 0 ? shown[shown.length - 1].circuit : 'Lights out…'}
+              </h1>
             </div>
           )}
 
           {state.phase === 'complete' && state.result && (
-            <>
-              <SeasonComplete
-                result={state.result}
-                onSubmit={onSubmit}
-                submitting={submitting}
-                submitted={state.submitted}
-                error={submitError}
-                name={name}
-                onNameChange={setName}
-              />
-              {board && <Leaderboard entries={board} />}
-              <Standings standings={state.result.standings} />
-              <div className="space-y-4">
-                {state.result.races.map((r) => (
-                  <RaceResults key={r.round} race={r} teams={season.field} />
-                ))}
-              </div>
-            </>
+            <SeasonComplete
+              result={state.result}
+              onSubmit={onSubmit}
+              submitting={submitting}
+              submitted={state.submitted}
+              error={submitError}
+              name={name}
+              onNameChange={setName}
+            />
           )}
+
+          {state.result && state.result.build.length > 0 && <Build build={state.result.build} />}
+          {board && <Leaderboard entries={board} />}
+          {state.phase === 'complete' && state.result && (
+            <Standings standings={state.result.standings} />
+          )}
+
+          <div className="space-y-4">
+            {[...shown].reverse().map((r) => (
+              <RaceResults key={r.round} race={r} teams={season.field} />
+            ))}
+          </div>
         </div>
 
         <aside className="space-y-5">
-          <Calendar calendar={season.calendar} round={state.round} results={playerRaces} />
+          <Calendar
+            calendar={season.calendar}
+            round={windowRound}
+            results={playerRaces.length > 0 ? playerRaces : undefined}
+          />
           <div className="rounded-lg border border-edge bg-panel p-4 text-xs text-muted">
             <p>
               Season {Number(season.seed) % 1000} · sim {season.sim_version}
             </p>
             <p className="mt-2">
-              Everyone in the world plays this same season today — same calendar, same rivals, same
-              luck. The leaderboard measures decisions and nothing else.
+              Everyone in the world is dealt these same parts today. The leaderboard measures what
+              you did with them.
             </p>
           </div>
         </aside>

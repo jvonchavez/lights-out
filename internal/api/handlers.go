@@ -158,6 +158,22 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A season is verified under the version it was published with, and old
+	// seasons are frozen rather than recomputed (docs/Architecture.md). The
+	// seed alone does not pin a result: if the rules changed, replaying the
+	// same picks produces a different score, so scoring a 1.x season with
+	// 2.x code would silently corrupt a leaderboard mid-day.
+	if season.SimVersion != sim.Version {
+		s.metrics.RunsSubmitted.WithLabelValues("stale_version").Inc()
+		s.log.Warn("submission to a season from another ruleset",
+			"request_id", reqID, "season_id", season.ID,
+			"season_version", season.SimVersion, "sim_version", sim.Version)
+		s.writeError(w, http.StatusConflict,
+			"this season was published under ruleset "+season.SimVersion+
+				"; the game is now on "+sim.Version+". A fresh season starts at midnight UTC.")
+		return
+	}
+
 	// THE VERIFICATION. The season's seed comes from the database, never
 	// from the request, and the score is computed here from the submitted
 	// decisions. Anything the client could lie about is recomputed.
