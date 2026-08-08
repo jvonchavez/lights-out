@@ -73,11 +73,26 @@ const (
 	// (see team.go), so the reel can name a cause for free. Both are
 	// computed at ten times scale and divided down, which keeps the slopes
 	// expressible as integers.
-	MechBase       = Milli(3780)
-	MechRelRate    = 37 // per point of car Reliability
-	MechOpsRate    = 5  // per point of engineer Ops above StaffBaseline
-	DriverErrBase  = Milli(630)
-	ComposureRate  = 15 // per point of driver Composure above StaffBaseline
+	//
+	// Mechanical risk is QUADRATIC in the car's shortfall from perfect
+	// reliability, not linear. A linear slope cannot do both jobs at once:
+	// fitted to make a 2026 car reliable it makes a 1967 car reliable too,
+	// and fitted to make a 1967 car fragile it retires the modern grid four
+	// times a season. Measured at the linear settings, Cadillac averaged
+	// 3.99 retirements per season -- 20% of starts -- which is not a
+	// Formula 1 team, it is attrition. The curve below gives roughly 2% a
+	// start at Reliability 95, 6% at 75, 16% at 55 and 21% at 48, so the
+	// modern grid finishes and the era trade-off the roster is built on
+	// stays real.
+	RelCeiling = 100
+	MechFloor  = Milli(18)
+	MechQuad   = 7
+	// The engineer's operation fixes a FRACTION of the risk rather than a
+	// fixed amount: a great engineer is worth much more on a fragile car
+	// than on one that was never going to break.
+	MechOpsRate    = 10
+	DriverErrBase  = Milli(524)
+	ComposureRate  = 12 // per point of driver Composure above StaffBaseline
 	FailureDivisor = 10
 
 	SafetyCarChance    = Milli(250) // 25% per race

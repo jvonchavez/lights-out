@@ -8,6 +8,12 @@ package sim
 //
 // Team IDs are the player at 0 and this slice at 1..11, in the order below.
 //
+// Reliability across this grid was raised after the M3 balance sweep. It had
+// been authored on the same scale as the historical roster, which retired
+// Cadillac 3.99 times a season and Aston Martin 2.90 -- 1970s numbers on
+// 2026 cars. A struggling modern team still reaches the flag; it just
+// reaches it fourteenth.
+//
 // Ratings are anchored to the real 2026 constructors' table after twelve
 // rounds -- Mercedes 425, Ferrari 338, McLaren 263, Red Bull 186, then a
 // cliff to Racing Bulls 66 and Alpine 63, and a long tail down to Cadillac
@@ -35,7 +41,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "ferrari-2026", Team: "Ferrari", Year: 2026, EraID: "2026", Livery: "#E8002D",
 		Car: CarSpec{ID: "ferrari-sf26", Name: "Ferrari SF-26",
-			Power: 93, Cornering: 92, Aero: 90, Reliability: 88},
+			Power: 93, Cornering: 92, Aero: 90, Reliability: 90},
 		Drivers: [2]DriverSpec{
 			{ID: "leclerc-2026", Name: "Charles Leclerc", Pace: 96, Racecraft: 88, Consistency: 86, Composure: 84},
 			{ID: "hamilton-2026", Name: "Lewis Hamilton", Pace: 89, Racecraft: 94, Consistency: 85, Composure: 90},
@@ -46,7 +52,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "mclaren-2026", Team: "McLaren", Year: 2026, EraID: "2026", Livery: "#FF8000",
 		Car: CarSpec{ID: "mclaren-mcl40", Name: "McLaren MCL40",
-			Power: 94, Cornering: 87, Aero: 86, Reliability: 86},
+			Power: 94, Cornering: 87, Aero: 86, Reliability: 89},
 		Drivers: [2]DriverSpec{
 			{ID: "norris-2026", Name: "Lando Norris", Pace: 94, Racecraft: 90, Consistency: 89, Composure: 85},
 			{ID: "piastri-2026", Name: "Oscar Piastri", Pace: 93, Racecraft: 89, Consistency: 92, Composure: 88},
@@ -57,7 +63,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "redbull-2026", Team: "Red Bull", Year: 2026, EraID: "2026", Livery: "#3671C6",
 		Car: CarSpec{ID: "redbull-rb22", Name: "Red Bull RB22",
-			Power: 78, Cornering: 90, Aero: 89, Reliability: 80},
+			Power: 78, Cornering: 90, Aero: 89, Reliability: 84},
 		Drivers: [2]DriverSpec{
 			{ID: "verstappen-2026", Name: "Max Verstappen", Pace: 99, Racecraft: 97, Consistency: 96, Composure: 92},
 			{ID: "hadjar-2026", Name: "Isack Hadjar", Pace: 85, Racecraft: 80, Consistency: 79, Composure: 77},
@@ -68,7 +74,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "racingbulls-2026", Team: "Racing Bulls", Year: 2026, EraID: "2026", Livery: "#6692FF",
 		Car: CarSpec{ID: "racingbulls-vcarb03", Name: "Racing Bulls VCARB 03",
-			Power: 76, Cornering: 79, Aero: 77, Reliability: 78},
+			Power: 76, Cornering: 79, Aero: 77, Reliability: 82},
 		Drivers: [2]DriverSpec{
 			{ID: "lawson-2026", Name: "Liam Lawson", Pace: 80, Racecraft: 78, Consistency: 76, Composure: 74},
 			{ID: "lindblad-2026", Name: "Arvid Lindblad", Pace: 79, Racecraft: 74, Consistency: 71, Composure: 72},
@@ -79,7 +85,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "alpine-2026", Team: "Alpine", Year: 2026, EraID: "2026", Livery: "#00A1E8",
 		Car: CarSpec{ID: "alpine-a526", Name: "Alpine A526",
-			Power: 90, Cornering: 70, Aero: 69, Reliability: 76},
+			Power: 90, Cornering: 70, Aero: 69, Reliability: 80},
 		Drivers: [2]DriverSpec{
 			{ID: "gasly-2026", Name: "Pierre Gasly", Pace: 84, Racecraft: 83, Consistency: 82, Composure: 78},
 			{ID: "colapinto-2026", Name: "Franco Colapinto", Pace: 79, Racecraft: 76, Consistency: 72, Composure: 72},
@@ -90,7 +96,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "haas-2026", Team: "Haas", Year: 2026, EraID: "2026", Livery: "#B6BABD",
 		Car: CarSpec{ID: "haas-vf26", Name: "Haas VF-26",
-			Power: 88, Cornering: 65, Aero: 63, Reliability: 72},
+			Power: 88, Cornering: 65, Aero: 63, Reliability: 78},
 		Drivers: [2]DriverSpec{
 			{ID: "ocon-2026", Name: "Esteban Ocon", Pace: 82, Racecraft: 82, Consistency: 83, Composure: 76},
 			{ID: "bearman-2026", Name: "Oliver Bearman", Pace: 82, Racecraft: 79, Consistency: 76, Composure: 76},
@@ -101,7 +107,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "audi-2026", Team: "Audi", Year: 2026, EraID: "2026", Livery: "#8E9A9A",
 		Car: CarSpec{ID: "audi-r26", Name: "Audi R26",
-			Power: 72, Cornering: 70, Aero: 69, Reliability: 66},
+			Power: 72, Cornering: 70, Aero: 69, Reliability: 74},
 		Drivers: [2]DriverSpec{
 			{ID: "hulkenberg-2026", Name: "Nico Hulkenberg", Pace: 83, Racecraft: 85, Consistency: 84, Composure: 85},
 			{ID: "bortoleto-2026", Name: "Gabriel Bortoleto", Pace: 80, Racecraft: 77, Consistency: 78, Composure: 78},
@@ -112,7 +118,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "williams-2026", Team: "Williams", Year: 2026, EraID: "2026", Livery: "#1868DB",
 		Car: CarSpec{ID: "williams-fw48", Name: "Williams FW48",
-			Power: 90, Cornering: 60, Aero: 58, Reliability: 62},
+			Power: 90, Cornering: 60, Aero: 58, Reliability: 76},
 		Drivers: [2]DriverSpec{
 			{ID: "albon-2026", Name: "Alex Albon", Pace: 84, Racecraft: 84, Consistency: 86, Composure: 84},
 			{ID: "sainz-2026", Name: "Carlos Sainz", Pace: 88, Racecraft: 86, Consistency: 85, Composure: 83},
@@ -123,7 +129,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "astonmartin-2026", Team: "Aston Martin", Year: 2026, EraID: "2026", Livery: "#229971",
 		Car: CarSpec{ID: "astonmartin-amr26", Name: "Aston Martin AMR26",
-			Power: 74, Cornering: 64, Aero: 66, Reliability: 58},
+			Power: 74, Cornering: 64, Aero: 66, Reliability: 72},
 		Drivers: [2]DriverSpec{
 			{ID: "alonso-2026", Name: "Fernando Alonso", Pace: 85, Racecraft: 96, Consistency: 88, Composure: 93},
 			{ID: "stroll-2026", Name: "Lance Stroll", Pace: 74, Racecraft: 72, Consistency: 72, Composure: 70},
@@ -137,7 +143,7 @@ var Grid2026 = []TeamEra{
 	{
 		ID: "cadillac-2026", Team: "Cadillac", Year: 2026, EraID: "2026", Livery: "#D4AF37",
 		Car: CarSpec{ID: "cadillac-mac26", Name: "Cadillac MAC-26",
-			Power: 86, Cornering: 52, Aero: 50, Reliability: 55},
+			Power: 86, Cornering: 52, Aero: 50, Reliability: 70},
 		Drivers: [2]DriverSpec{
 			{ID: "bottas-2026", Name: "Valtteri Bottas", Pace: 80, Racecraft: 82, Consistency: 85, Composure: 86},
 			{ID: "perez-2026", Name: "Sergio Perez", Pace: 80, Racecraft: 83, Consistency: 74, Composure: 75},

@@ -150,7 +150,7 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 		n, len(strategies), elapsed.Round(time.Millisecond), workers,
 		float64(n*len(strategies))/elapsed.Seconds())
 
-	fmt.Printf("%-13s %8s %9s %9s %9s %9s %9s\n", "STRATEGY", "TITLE%", "AVG PTS", "AVG POS", "AVG WINS", "AVG DNF", "AVG SPEND")
+	fmt.Printf("%-13s %8s %9s %9s %9s %9s %9s\n", "STRATEGY", "TITLE%", "AVG PTS", "AVG POS", "AVG WINS", "AVG DNF", "AVG CAR")
 	fmt.Println("-------------------------------------------------------------------------")
 	worst := ""
 	var maxTitle float64
@@ -169,6 +169,6 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 			float64(a.carOV)/float64(a.seasons))
 	}
 
-	fmt.Printf("\nM1 GATE: best strategy is %q at %.1f%% titles (target: at most ~35%%) -- %s\n",
+	fmt.Printf("\nBALANCE GATE: best strategy is %q at %.1f%% titles (target: at most ~35%%) -- %s\n",
 		worst, maxTitle, map[bool]string{true: "PASS", false: "FAIL"}[maxTitle <= 35.0])
 }

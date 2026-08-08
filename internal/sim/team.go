@@ -130,9 +130,15 @@ func (e *entryState) gridPenalty(gridPos int, p CircuitProfile) Milli {
 // contract simple and still gives the race reel a reason to name, which is
 // the difference between "DNF" and "engine, on lap 41".
 func (e *entryState) failure(r *RNG) (bool, string) {
-	mech := (MechBase -
-		Milli(e.car.Reliability*MechRelRate) -
-		Milli((e.engineer.Ops-StaffBaseline)*MechOpsRate)) / FailureDivisor
+	short := RelCeiling - e.car.Reliability
+	if short < 0 {
+		short = 0
+	}
+	mech := MechFloor + Milli(short*short*MechQuad/100)
+	// A good race operation removes a share of whatever risk is there.
+	if credit := mech * Milli((e.engineer.Ops-StaffBaseline)*MechOpsRate) / One; credit > 0 {
+		mech -= credit
+	}
 	if mech < 0 {
 		mech = 0
 	}

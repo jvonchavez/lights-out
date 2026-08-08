@@ -312,7 +312,7 @@
           "grid": 18,
           "finish": 0,
           "dnf": true,
-          "dnf_reason": "mechanical",
+          "dnf_reason": "driver",
           "points": 0
         },
         {
@@ -453,9 +453,9 @@
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
           "grid": 21,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "finish": 17,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -466,7 +466,7 @@
           "grid": 14,
           "finish": 0,
           "dnf": true,
-          "dnf_reason": "mechanical",
+          "dnf_reason": "driver",
           "points": 0
         },
         {
@@ -508,7 +508,7 @@
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
           "grid": 20,
-          "finish": 15,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -519,7 +519,7 @@
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
           "grid": 16,
-          "finish": 14,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -530,7 +530,7 @@
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
           "grid": 22,
-          "finish": 17,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -541,7 +541,7 @@
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
           "grid": 23,
-          "finish": 18,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -562,15 +562,15 @@
     {
       "round": 2,
       "circuit": "Costa Nera",
-      "safety_car": true,
+      "safety_car": false,
       "entries": [
         {
           "team_id": 0,
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 13,
-          "finish": 14,
+          "grid": 16,
+          "finish": 12,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -580,8 +580,8 @@
           "entry": 1,
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
-          "grid": 19,
-          "finish": 17,
+          "grid": 18,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -591,17 +591,6 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 3,
-          "finish": 2,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 18
-        },
-        {
-          "team_id": 1,
-          "entry": 1,
-          "driver_id": "antonelli-2026",
-          "driver": "Kimi Antonelli",
           "grid": 2,
           "finish": 1,
           "dnf": false,
@@ -609,21 +598,54 @@
           "points": 25
         },
         {
+          "team_id": 1,
+          "entry": 1,
+          "driver_id": "antonelli-2026",
+          "driver": "Kimi Antonelli",
+          "grid": 1,
+          "finish": 3,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 15
+        },
+        {
           "team_id": 2,
           "entry": 0,
           "driver_id": "leclerc-2026",
           "driver": "Charles Leclerc",
-          "grid": 1,
-          "finish": 5,
+          "grid": 4,
+          "finish": 2,
           "dnf": false,
           "dnf_reason": "",
-          "points": 10
+          "points": 18
         },
         {
           "team_id": 2,
           "entry": 1,
           "driver_id": "hamilton-2026",
           "driver": "Lewis Hamilton",
+          "grid": 6,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "driver",
+          "points": 0
+        },
+        {
+          "team_id": 3,
+          "entry": 0,
+          "driver_id": "norris-2026",
+          "driver": "Lando Norris",
+          "grid": 3,
+          "finish": 5,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 10
+        },
+        {
+          "team_id": 3,
+          "entry": 1,
+          "driver_id": "piastri-2026",
+          "driver": "Oscar Piastri",
           "grid": 5,
           "finish": 4,
           "dnf": false,
@@ -631,37 +653,15 @@
           "points": 12
         },
         {
-          "team_id": 3,
-          "entry": 0,
-          "driver_id": "norris-2026",
-          "driver": "Lando Norris",
-          "grid": 6,
-          "finish": 6,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 8
-        },
-        {
-          "team_id": 3,
-          "entry": 1,
-          "driver_id": "piastri-2026",
-          "driver": "Oscar Piastri",
-          "grid": 4,
-          "finish": 3,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 15
-        },
-        {
           "team_id": 4,
           "entry": 0,
           "driver_id": "verstappen-2026",
           "driver": "Max Verstappen",
           "grid": 7,
-          "finish": 7,
+          "finish": 6,
           "dnf": false,
           "dnf_reason": "",
-          "points": 6
+          "points": 8
         },
         {
           "team_id": 4,
@@ -669,18 +669,18 @@
           "driver_id": "hadjar-2026",
           "driver": "Isack Hadjar",
           "grid": 8,
-          "finish": 9,
+          "finish": 7,
           "dnf": false,
           "dnf_reason": "",
-          "points": 2
+          "points": 6
         },
         {
           "team_id": 5,
           "entry": 0,
           "driver_id": "lawson-2026",
           "driver": "Liam Lawson",
-          "grid": 16,
-          "finish": 12,
+          "grid": 14,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -690,8 +690,8 @@
           "entry": 1,
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
-          "grid": 11,
-          "finish": 18,
+          "grid": 13,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -701,7 +701,7 @@
           "entry": 0,
           "driver_id": "gasly-2026",
           "driver": "Pierre Gasly",
-          "grid": 9,
+          "grid": 11,
           "finish": 8,
           "dnf": false,
           "dnf_reason": "",
@@ -723,7 +723,7 @@
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 14,
+          "grid": 9,
           "finish": 11,
           "dnf": false,
           "dnf_reason": "",
@@ -734,10 +734,10 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 10,
-          "finish": 13,
-          "dnf": false,
-          "dnf_reason": "",
+          "grid": 15,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "mechanical",
           "points": 0
         },
         {
@@ -745,10 +745,10 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 21,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "grid": 20,
+          "finish": 18,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -759,7 +759,7 @@
           "grid": 23,
           "finish": 0,
           "dnf": true,
-          "dnf_reason": "mechanical",
+          "dnf_reason": "driver",
           "points": 0
         },
         {
@@ -768,7 +768,7 @@
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
           "grid": 17,
-          "finish": 15,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -778,19 +778,19 @@
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 15,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
-          "points": 0
+          "grid": 10,
+          "finish": 9,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 2
         },
         {
           "team_id": 10,
           "entry": 0,
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
-          "grid": 20,
-          "finish": 19,
+          "grid": 22,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -800,10 +800,10 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 24,
-          "finish": 21,
-          "dnf": false,
-          "dnf_reason": "",
+          "grid": 21,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "driver",
           "points": 0
         },
         {
@@ -811,10 +811,10 @@
           "entry": 0,
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
-          "grid": 22,
-          "finish": 20,
-          "dnf": false,
-          "dnf_reason": "",
+          "grid": 19,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "mechanical",
           "points": 0
         },
         {
@@ -822,8 +822,8 @@
           "entry": 1,
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
-          "grid": 18,
-          "finish": 16,
+          "grid": 24,
+          "finish": 19,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -840,10 +840,10 @@
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 13,
-          "finish": 14,
-          "dnf": false,
-          "dnf_reason": "",
+          "grid": 9,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "mechanical",
           "points": 0
         },
         {
@@ -852,7 +852,7 @@
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
           "grid": 16,
-          "finish": 19,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -862,7 +862,7 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 2,
+          "grid": 1,
           "finish": 1,
           "dnf": false,
           "dnf_reason": "",
@@ -873,7 +873,7 @@
           "entry": 1,
           "driver_id": "antonelli-2026",
           "driver": "Kimi Antonelli",
-          "grid": 1,
+          "grid": 3,
           "finish": 2,
           "dnf": false,
           "dnf_reason": "",
@@ -884,29 +884,18 @@
           "entry": 0,
           "driver_id": "leclerc-2026",
           "driver": "Charles Leclerc",
-          "grid": 3,
-          "finish": 3,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 15
+          "grid": 5,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "driver",
+          "points": 0
         },
         {
           "team_id": 2,
           "entry": 1,
           "driver_id": "hamilton-2026",
           "driver": "Lewis Hamilton",
-          "grid": 5,
-          "finish": 5,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 10
-        },
-        {
-          "team_id": 3,
-          "entry": 0,
-          "driver_id": "norris-2026",
-          "driver": "Lando Norris",
-          "grid": 4,
+          "grid": 2,
           "finish": 4,
           "dnf": false,
           "dnf_reason": "",
@@ -914,9 +903,31 @@
         },
         {
           "team_id": 3,
+          "entry": 0,
+          "driver_id": "norris-2026",
+          "driver": "Lando Norris",
+          "grid": 4,
+          "finish": 3,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 15
+        },
+        {
+          "team_id": 3,
           "entry": 1,
           "driver_id": "piastri-2026",
           "driver": "Oscar Piastri",
+          "grid": 6,
+          "finish": 5,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 10
+        },
+        {
+          "team_id": 4,
+          "entry": 0,
+          "driver_id": "verstappen-2026",
+          "driver": "Max Verstappen",
           "grid": 7,
           "finish": 6,
           "dnf": false,
@@ -925,25 +936,14 @@
         },
         {
           "team_id": 4,
-          "entry": 0,
-          "driver_id": "verstappen-2026",
-          "driver": "Max Verstappen",
-          "grid": 6,
-          "finish": 7,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 6
-        },
-        {
-          "team_id": 4,
           "entry": 1,
           "driver_id": "hadjar-2026",
           "driver": "Isack Hadjar",
           "grid": 8,
-          "finish": 8,
+          "finish": 7,
           "dnf": false,
           "dnf_reason": "",
-          "points": 4
+          "points": 6
         },
         {
           "team_id": 5,
@@ -951,17 +951,17 @@
           "driver_id": "lawson-2026",
           "driver": "Liam Lawson",
           "grid": 11,
-          "finish": 11,
+          "finish": 10,
           "dnf": false,
           "dnf_reason": "",
-          "points": 0
+          "points": 1
         },
         {
           "team_id": 5,
           "entry": 1,
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
-          "grid": 10,
+          "grid": 14,
           "finish": 12,
           "dnf": false,
           "dnf_reason": "",
@@ -972,30 +972,30 @@
           "entry": 0,
           "driver_id": "gasly-2026",
           "driver": "Pierre Gasly",
-          "grid": 9,
-          "finish": 9,
+          "grid": 10,
+          "finish": 8,
           "dnf": false,
           "dnf_reason": "",
-          "points": 2
+          "points": 4
         },
         {
           "team_id": 6,
           "entry": 1,
           "driver_id": "colapinto-2026",
           "driver": "Franco Colapinto",
-          "grid": 12,
-          "finish": 10,
+          "grid": 13,
+          "finish": 9,
           "dnf": false,
           "dnf_reason": "",
-          "points": 1
+          "points": 2
         },
         {
           "team_id": 7,
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 17,
-          "finish": 16,
+          "grid": 12,
+          "finish": 11,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1005,8 +1005,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 19,
-          "finish": 13,
+          "grid": 17,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1016,8 +1016,8 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 15,
-          "finish": 20,
+          "grid": 18,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1027,8 +1027,8 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 21,
-          "finish": 21,
+          "grid": 22,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1038,8 +1038,8 @@
           "entry": 0,
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
-          "grid": 18,
-          "finish": 18,
+          "grid": 15,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1049,8 +1049,8 @@
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 14,
-          "finish": 15,
+          "grid": 20,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1060,8 +1060,8 @@
           "entry": 0,
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
-          "grid": 20,
-          "finish": 17,
+          "grid": 19,
+          "finish": 19,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1071,8 +1071,8 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 23,
-          "finish": 22,
+          "grid": 21,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1082,8 +1082,8 @@
           "entry": 0,
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
-          "grid": 22,
-          "finish": 23,
+          "grid": 23,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1094,9 +1094,9 @@
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
           "grid": 24,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "finish": 22,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         }
       ]
@@ -1111,8 +1111,8 @@
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 16,
-          "finish": 11,
+          "grid": 12,
+          "finish": 12,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1122,8 +1122,8 @@
           "entry": 1,
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
-          "grid": 18,
-          "finish": 19,
+          "grid": 16,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1133,6 +1133,17 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
+          "grid": 1,
+          "finish": 1,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 25
+        },
+        {
+          "team_id": 1,
+          "entry": 1,
+          "driver_id": "antonelli-2026",
+          "driver": "Kimi Antonelli",
           "grid": 2,
           "finish": 2,
           "dnf": false,
@@ -1140,32 +1151,32 @@
           "points": 18
         },
         {
-          "team_id": 1,
-          "entry": 1,
-          "driver_id": "antonelli-2026",
-          "driver": "Kimi Antonelli",
-          "grid": 1,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "driver",
-          "points": 0
-        },
-        {
           "team_id": 2,
           "entry": 0,
           "driver_id": "leclerc-2026",
           "driver": "Charles Leclerc",
-          "grid": 5,
-          "finish": 1,
+          "grid": 3,
+          "finish": 3,
           "dnf": false,
           "dnf_reason": "",
-          "points": 25
+          "points": 15
         },
         {
           "team_id": 2,
           "entry": 1,
           "driver_id": "hamilton-2026",
           "driver": "Lewis Hamilton",
+          "grid": 6,
+          "finish": 7,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 6
+        },
+        {
+          "team_id": 3,
+          "entry": 0,
+          "driver_id": "norris-2026",
+          "driver": "Lando Norris",
           "grid": 4,
           "finish": 4,
           "dnf": false,
@@ -1174,32 +1185,10 @@
         },
         {
           "team_id": 3,
-          "entry": 0,
-          "driver_id": "norris-2026",
-          "driver": "Lando Norris",
-          "grid": 3,
-          "finish": 3,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 15
-        },
-        {
-          "team_id": 3,
           "entry": 1,
           "driver_id": "piastri-2026",
           "driver": "Oscar Piastri",
           "grid": 8,
-          "finish": 6,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 8
-        },
-        {
-          "team_id": 4,
-          "entry": 0,
-          "driver_id": "verstappen-2026",
-          "driver": "Max Verstappen",
-          "grid": 6,
           "finish": 5,
           "dnf": false,
           "dnf_reason": "",
@@ -1207,21 +1196,21 @@
         },
         {
           "team_id": 4,
+          "entry": 0,
+          "driver_id": "verstappen-2026",
+          "driver": "Max Verstappen",
+          "grid": 5,
+          "finish": 6,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 8
+        },
+        {
+          "team_id": 4,
           "entry": 1,
           "driver_id": "hadjar-2026",
           "driver": "Isack Hadjar",
           "grid": 7,
-          "finish": 7,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 6
-        },
-        {
-          "team_id": 5,
-          "entry": 0,
-          "driver_id": "lawson-2026",
-          "driver": "Liam Lawson",
-          "grid": 12,
           "finish": 8,
           "dnf": false,
           "dnf_reason": "",
@@ -1229,9 +1218,9 @@
         },
         {
           "team_id": 5,
-          "entry": 1,
-          "driver_id": "lindblad-2026",
-          "driver": "Arvid Lindblad",
+          "entry": 0,
+          "driver_id": "lawson-2026",
+          "driver": "Liam Lawson",
           "grid": 10,
           "finish": 10,
           "dnf": false,
@@ -1239,21 +1228,10 @@
           "points": 1
         },
         {
-          "team_id": 6,
-          "entry": 0,
-          "driver_id": "gasly-2026",
-          "driver": "Pierre Gasly",
-          "grid": 11,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
-          "points": 0
-        },
-        {
-          "team_id": 6,
+          "team_id": 5,
           "entry": 1,
-          "driver_id": "colapinto-2026",
-          "driver": "Franco Colapinto",
+          "driver_id": "lindblad-2026",
+          "driver": "Arvid Lindblad",
           "grid": 9,
           "finish": 9,
           "dnf": false,
@@ -1261,12 +1239,34 @@
           "points": 2
         },
         {
+          "team_id": 6,
+          "entry": 0,
+          "driver_id": "gasly-2026",
+          "driver": "Pierre Gasly",
+          "grid": 11,
+          "finish": 11,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 6,
+          "entry": 1,
+          "driver_id": "colapinto-2026",
+          "driver": "Franco Colapinto",
+          "grid": 19,
+          "finish": 19,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
           "team_id": 7,
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 21,
-          "finish": 14,
+          "grid": 18,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1276,8 +1276,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 19,
-          "finish": 16,
+          "grid": 15,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1287,7 +1287,7 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 15,
+          "grid": 13,
           "finish": 13,
           "dnf": false,
           "dnf_reason": "",
@@ -1298,8 +1298,8 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 14,
-          "finish": 15,
+          "grid": 21,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1309,8 +1309,8 @@
           "entry": 0,
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
-          "grid": 20,
-          "finish": 18,
+          "grid": 22,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1320,8 +1320,8 @@
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 13,
-          "finish": 12,
+          "grid": 17,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1331,8 +1331,8 @@
           "entry": 0,
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
-          "grid": 17,
-          "finish": 17,
+          "grid": 14,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1342,8 +1342,8 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 22,
-          "finish": 20,
+          "grid": 20,
+          "finish": 22,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1353,10 +1353,10 @@
           "entry": 0,
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
-          "grid": 24,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "grid": 23,
+          "finish": 24,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -1364,8 +1364,8 @@
           "entry": 1,
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
-          "grid": 23,
-          "finish": 21,
+          "grid": 24,
+          "finish": 23,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1382,7 +1382,7 @@
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 12,
+          "grid": 11,
           "finish": 11,
           "dnf": false,
           "dnf_reason": "",
@@ -1394,7 +1394,7 @@
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
           "grid": 20,
-          "finish": 21,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1404,7 +1404,7 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 2,
+          "grid": 1,
           "finish": 1,
           "dnf": false,
           "dnf_reason": "",
@@ -1415,18 +1415,7 @@
           "entry": 1,
           "driver_id": "antonelli-2026",
           "driver": "Kimi Antonelli",
-          "grid": 1,
-          "finish": 2,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 18
-        },
-        {
-          "team_id": 2,
-          "entry": 0,
-          "driver_id": "leclerc-2026",
-          "driver": "Charles Leclerc",
-          "grid": 6,
+          "grid": 2,
           "finish": 3,
           "dnf": false,
           "dnf_reason": "",
@@ -1434,21 +1423,21 @@
         },
         {
           "team_id": 2,
+          "entry": 0,
+          "driver_id": "leclerc-2026",
+          "driver": "Charles Leclerc",
+          "grid": 4,
+          "finish": 2,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 18
+        },
+        {
+          "team_id": 2,
           "entry": 1,
           "driver_id": "hamilton-2026",
           "driver": "Lewis Hamilton",
-          "grid": 5,
-          "finish": 7,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 6
-        },
-        {
-          "team_id": 3,
-          "entry": 0,
-          "driver_id": "norris-2026",
-          "driver": "Lando Norris",
-          "grid": 3,
+          "grid": 6,
           "finish": 5,
           "dnf": false,
           "dnf_reason": "",
@@ -1456,10 +1445,21 @@
         },
         {
           "team_id": 3,
+          "entry": 0,
+          "driver_id": "norris-2026",
+          "driver": "Lando Norris",
+          "grid": 3,
+          "finish": 6,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 8
+        },
+        {
+          "team_id": 3,
           "entry": 1,
           "driver_id": "piastri-2026",
           "driver": "Oscar Piastri",
-          "grid": 4,
+          "grid": 5,
           "finish": 4,
           "dnf": false,
           "dnf_reason": "",
@@ -1471,10 +1471,10 @@
           "driver_id": "verstappen-2026",
           "driver": "Max Verstappen",
           "grid": 7,
-          "finish": 6,
+          "finish": 7,
           "dnf": false,
           "dnf_reason": "",
-          "points": 8
+          "points": 6
         },
         {
           "team_id": 4,
@@ -1492,7 +1492,7 @@
           "entry": 0,
           "driver_id": "lawson-2026",
           "driver": "Liam Lawson",
-          "grid": 9,
+          "grid": 10,
           "finish": 10,
           "dnf": false,
           "dnf_reason": "",
@@ -1503,7 +1503,7 @@
           "entry": 1,
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
-          "grid": 10,
+          "grid": 9,
           "finish": 9,
           "dnf": false,
           "dnf_reason": "",
@@ -1515,7 +1515,7 @@
           "driver_id": "gasly-2026",
           "driver": "Pierre Gasly",
           "grid": 14,
-          "finish": 14,
+          "finish": 12,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1525,8 +1525,8 @@
           "entry": 1,
           "driver_id": "colapinto-2026",
           "driver": "Franco Colapinto",
-          "grid": 13,
-          "finish": 12,
+          "grid": 15,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1536,8 +1536,8 @@
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 17,
-          "finish": 15,
+          "grid": 18,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1547,8 +1547,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 11,
-          "finish": 17,
+          "grid": 13,
+          "finish": 19,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1558,8 +1558,8 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 19,
-          "finish": 13,
+          "grid": 16,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1569,8 +1569,8 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 15,
-          "finish": 19,
+          "grid": 17,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1580,8 +1580,8 @@
           "entry": 0,
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
-          "grid": 18,
-          "finish": 20,
+          "grid": 19,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1591,8 +1591,8 @@
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 16,
-          "finish": 16,
+          "grid": 12,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1602,7 +1602,7 @@
           "entry": 0,
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
-          "grid": 22,
+          "grid": 21,
           "finish": 18,
           "dnf": false,
           "dnf_reason": "",
@@ -1613,10 +1613,10 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 21,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "driver",
+          "grid": 22,
+          "finish": 22,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -1625,7 +1625,7 @@
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
           "grid": 24,
-          "finish": 23,
+          "finish": 24,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1636,7 +1636,7 @@
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
           "grid": 23,
-          "finish": 22,
+          "finish": 23,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1653,8 +1653,279 @@
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
+          "grid": 14,
+          "finish": 13,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 0,
+          "entry": 1,
+          "driver_id": "hulme-1966",
+          "driver": "Denny Hulme",
+          "grid": 17,
+          "finish": 18,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 1,
+          "entry": 0,
+          "driver_id": "russell-2026",
+          "driver": "George Russell",
+          "grid": 2,
+          "finish": 1,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 25
+        },
+        {
+          "team_id": 1,
+          "entry": 1,
+          "driver_id": "antonelli-2026",
+          "driver": "Kimi Antonelli",
+          "grid": 1,
+          "finish": 2,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 18
+        },
+        {
+          "team_id": 2,
+          "entry": 0,
+          "driver_id": "leclerc-2026",
+          "driver": "Charles Leclerc",
+          "grid": 3,
+          "finish": 3,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 15
+        },
+        {
+          "team_id": 2,
+          "entry": 1,
+          "driver_id": "hamilton-2026",
+          "driver": "Lewis Hamilton",
+          "grid": 4,
+          "finish": 5,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 10
+        },
+        {
+          "team_id": 3,
+          "entry": 0,
+          "driver_id": "norris-2026",
+          "driver": "Lando Norris",
+          "grid": 5,
+          "finish": 4,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 12
+        },
+        {
+          "team_id": 3,
+          "entry": 1,
+          "driver_id": "piastri-2026",
+          "driver": "Oscar Piastri",
+          "grid": 7,
+          "finish": 7,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 6
+        },
+        {
+          "team_id": 4,
+          "entry": 0,
+          "driver_id": "verstappen-2026",
+          "driver": "Max Verstappen",
+          "grid": 6,
+          "finish": 6,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 8
+        },
+        {
+          "team_id": 4,
+          "entry": 1,
+          "driver_id": "hadjar-2026",
+          "driver": "Isack Hadjar",
+          "grid": 8,
+          "finish": 8,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 4
+        },
+        {
+          "team_id": 5,
+          "entry": 0,
+          "driver_id": "lawson-2026",
+          "driver": "Liam Lawson",
+          "grid": 9,
+          "finish": 10,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 1
+        },
+        {
+          "team_id": 5,
+          "entry": 1,
+          "driver_id": "lindblad-2026",
+          "driver": "Arvid Lindblad",
           "grid": 12,
+          "finish": 11,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 6,
+          "entry": 0,
+          "driver_id": "gasly-2026",
+          "driver": "Pierre Gasly",
+          "grid": 10,
+          "finish": 9,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 2
+        },
+        {
+          "team_id": 6,
+          "entry": 1,
+          "driver_id": "colapinto-2026",
+          "driver": "Franco Colapinto",
+          "grid": 15,
+          "finish": 17,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 7,
+          "entry": 0,
+          "driver_id": "ocon-2026",
+          "driver": "Esteban Ocon",
+          "grid": 11,
+          "finish": 16,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 7,
+          "entry": 1,
+          "driver_id": "bearman-2026",
+          "driver": "Oliver Bearman",
+          "grid": 18,
+          "finish": 15,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 8,
+          "entry": 0,
+          "driver_id": "hulkenberg-2026",
+          "driver": "Nico Hulkenberg",
+          "grid": 21,
+          "finish": 19,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 8,
+          "entry": 1,
+          "driver_id": "bortoleto-2026",
+          "driver": "Gabriel Bortoleto",
+          "grid": 16,
+          "finish": 20,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 9,
+          "entry": 0,
+          "driver_id": "albon-2026",
+          "driver": "Alex Albon",
+          "grid": 19,
+          "finish": 14,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 9,
+          "entry": 1,
+          "driver_id": "sainz-2026",
+          "driver": "Carlos Sainz",
+          "grid": 13,
           "finish": 12,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 10,
+          "entry": 0,
+          "driver_id": "alonso-2026",
+          "driver": "Fernando Alonso",
+          "grid": 20,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "mechanical",
+          "points": 0
+        },
+        {
+          "team_id": 10,
+          "entry": 1,
+          "driver_id": "stroll-2026",
+          "driver": "Lance Stroll",
+          "grid": 23,
+          "finish": 21,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 11,
+          "entry": 0,
+          "driver_id": "bottas-2026",
+          "driver": "Valtteri Bottas",
+          "grid": 22,
+          "finish": 22,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 11,
+          "entry": 1,
+          "driver_id": "perez-2026",
+          "driver": "Sergio Perez",
+          "grid": 24,
+          "finish": 23,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "circuit": "Mont Aubade",
+      "safety_car": true,
+      "entries": [
+        {
+          "team_id": 0,
+          "entry": 0,
+          "driver_id": "clark-1967",
+          "driver": "Jim Clark",
+          "grid": 17,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1675,29 +1946,18 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 2,
-          "finish": 2,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 18
-        },
-        {
-          "team_id": 1,
-          "entry": 1,
-          "driver_id": "antonelli-2026",
-          "driver": "Kimi Antonelli",
-          "grid": 3,
+          "grid": 1,
           "finish": 1,
           "dnf": false,
           "dnf_reason": "",
           "points": 25
         },
         {
-          "team_id": 2,
-          "entry": 0,
-          "driver_id": "leclerc-2026",
-          "driver": "Charles Leclerc",
-          "grid": 1,
+          "team_id": 1,
+          "entry": 1,
+          "driver_id": "antonelli-2026",
+          "driver": "Kimi Antonelli",
+          "grid": 4,
           "finish": 3,
           "dnf": false,
           "dnf_reason": "",
@@ -1705,21 +1965,21 @@
         },
         {
           "team_id": 2,
+          "entry": 0,
+          "driver_id": "leclerc-2026",
+          "driver": "Charles Leclerc",
+          "grid": 3,
+          "finish": 2,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 18
+        },
+        {
+          "team_id": 2,
           "entry": 1,
           "driver_id": "hamilton-2026",
           "driver": "Lewis Hamilton",
-          "grid": 4,
-          "finish": 6,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 8
-        },
-        {
-          "team_id": 3,
-          "entry": 0,
-          "driver_id": "norris-2026",
-          "driver": "Lando Norris",
-          "grid": 5,
+          "grid": 6,
           "finish": 4,
           "dnf": false,
           "dnf_reason": "",
@@ -1727,14 +1987,25 @@
         },
         {
           "team_id": 3,
-          "entry": 1,
-          "driver_id": "piastri-2026",
-          "driver": "Oscar Piastri",
-          "grid": 6,
+          "entry": 0,
+          "driver_id": "norris-2026",
+          "driver": "Lando Norris",
+          "grid": 5,
           "finish": 5,
           "dnf": false,
           "dnf_reason": "",
           "points": 10
+        },
+        {
+          "team_id": 3,
+          "entry": 1,
+          "driver_id": "piastri-2026",
+          "driver": "Oscar Piastri",
+          "grid": 2,
+          "finish": 6,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 8
         },
         {
           "team_id": 4,
@@ -1763,17 +2034,28 @@
           "entry": 0,
           "driver_id": "lawson-2026",
           "driver": "Liam Lawson",
-          "grid": 13,
-          "finish": 9,
+          "grid": 19,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
-          "points": 2
+          "points": 0
         },
         {
           "team_id": 5,
           "entry": 1,
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
+          "grid": 13,
+          "finish": 11,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 0
+        },
+        {
+          "team_id": 6,
+          "entry": 0,
+          "driver_id": "gasly-2026",
+          "driver": "Pierre Gasly",
           "grid": 10,
           "finish": 10,
           "dnf": false,
@@ -1782,33 +2064,22 @@
         },
         {
           "team_id": 6,
-          "entry": 0,
-          "driver_id": "gasly-2026",
-          "driver": "Pierre Gasly",
-          "grid": 9,
-          "finish": 11,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 6,
           "entry": 1,
           "driver_id": "colapinto-2026",
           "driver": "Franco Colapinto",
-          "grid": 15,
-          "finish": 14,
+          "grid": 9,
+          "finish": 9,
           "dnf": false,
           "dnf_reason": "",
-          "points": 0
+          "points": 2
         },
         {
           "team_id": 7,
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 17,
-          "finish": 15,
+          "grid": 12,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1818,8 +2089,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 11,
-          "finish": 19,
+          "grid": 14,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1829,8 +2100,8 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 20,
-          "finish": 17,
+          "grid": 21,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1840,8 +2111,8 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 21,
-          "finish": 18,
+          "grid": 16,
+          "finish": 19,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1851,8 +2122,8 @@
           "entry": 0,
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
-          "grid": 14,
-          "finish": 13,
+          "grid": 15,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1862,10 +2133,10 @@
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 16,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "grid": 11,
+          "finish": 12,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -1873,8 +2144,8 @@
           "entry": 0,
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
-          "grid": 19,
-          "finish": 16,
+          "grid": 20,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1884,8 +2155,8 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 22,
-          "finish": 20,
+          "grid": 23,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -1906,278 +2177,7 @@
           "entry": 1,
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
-          "grid": 23,
-          "finish": 21,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        }
-      ]
-    },
-    {
-      "round": 7,
-      "circuit": "Mont Aubade",
-      "safety_car": false,
-      "entries": [
-        {
-          "team_id": 0,
-          "entry": 0,
-          "driver_id": "clark-1967",
-          "driver": "Jim Clark",
-          "grid": 11,
-          "finish": 9,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 2
-        },
-        {
-          "team_id": 0,
-          "entry": 1,
-          "driver_id": "hulme-1966",
-          "driver": "Denny Hulme",
-          "grid": 20,
-          "finish": 20,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 1,
-          "entry": 0,
-          "driver_id": "russell-2026",
-          "driver": "George Russell",
-          "grid": 1,
-          "finish": 2,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 18
-        },
-        {
-          "team_id": 1,
-          "entry": 1,
-          "driver_id": "antonelli-2026",
-          "driver": "Kimi Antonelli",
-          "grid": 2,
-          "finish": 1,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 25
-        },
-        {
-          "team_id": 2,
-          "entry": 0,
-          "driver_id": "leclerc-2026",
-          "driver": "Charles Leclerc",
-          "grid": 5,
-          "finish": 3,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 15
-        },
-        {
-          "team_id": 2,
-          "entry": 1,
-          "driver_id": "hamilton-2026",
-          "driver": "Lewis Hamilton",
-          "grid": 6,
-          "finish": 5,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 10
-        },
-        {
-          "team_id": 3,
-          "entry": 0,
-          "driver_id": "norris-2026",
-          "driver": "Lando Norris",
-          "grid": 4,
-          "finish": 4,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 12
-        },
-        {
-          "team_id": 3,
-          "entry": 1,
-          "driver_id": "piastri-2026",
-          "driver": "Oscar Piastri",
-          "grid": 3,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "driver",
-          "points": 0
-        },
-        {
-          "team_id": 4,
-          "entry": 0,
-          "driver_id": "verstappen-2026",
-          "driver": "Max Verstappen",
-          "grid": 8,
-          "finish": 6,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 8
-        },
-        {
-          "team_id": 4,
-          "entry": 1,
-          "driver_id": "hadjar-2026",
-          "driver": "Isack Hadjar",
-          "grid": 7,
-          "finish": 7,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 6
-        },
-        {
-          "team_id": 5,
-          "entry": 0,
-          "driver_id": "lawson-2026",
-          "driver": "Liam Lawson",
-          "grid": 10,
-          "finish": 10,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 1
-        },
-        {
-          "team_id": 5,
-          "entry": 1,
-          "driver_id": "lindblad-2026",
-          "driver": "Arvid Lindblad",
-          "grid": 9,
-          "finish": 13,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 6,
-          "entry": 0,
-          "driver_id": "gasly-2026",
-          "driver": "Pierre Gasly",
-          "grid": 15,
-          "finish": 12,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 6,
-          "entry": 1,
-          "driver_id": "colapinto-2026",
-          "driver": "Franco Colapinto",
-          "grid": 14,
-          "finish": 8,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 4
-        },
-        {
-          "team_id": 7,
-          "entry": 0,
-          "driver_id": "ocon-2026",
-          "driver": "Esteban Ocon",
-          "grid": 17,
-          "finish": 14,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 7,
-          "entry": 1,
-          "driver_id": "bearman-2026",
-          "driver": "Oliver Bearman",
-          "grid": 13,
-          "finish": 11,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 8,
-          "entry": 0,
-          "driver_id": "hulkenberg-2026",
-          "driver": "Nico Hulkenberg",
-          "grid": 16,
-          "finish": 16,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 8,
-          "entry": 1,
-          "driver_id": "bortoleto-2026",
-          "driver": "Gabriel Bortoleto",
-          "grid": 21,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
-          "points": 0
-        },
-        {
-          "team_id": 9,
-          "entry": 0,
-          "driver_id": "albon-2026",
-          "driver": "Alex Albon",
           "grid": 22,
-          "finish": 17,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 9,
-          "entry": 1,
-          "driver_id": "sainz-2026",
-          "driver": "Carlos Sainz",
-          "grid": 12,
-          "finish": 19,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 10,
-          "entry": 0,
-          "driver_id": "alonso-2026",
-          "driver": "Fernando Alonso",
-          "grid": 19,
-          "finish": 15,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 10,
-          "entry": 1,
-          "driver_id": "stroll-2026",
-          "driver": "Lance Stroll",
-          "grid": 18,
-          "finish": 18,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 11,
-          "entry": 0,
-          "driver_id": "bottas-2026",
-          "driver": "Valtteri Bottas",
-          "grid": 23,
-          "finish": 21,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 0
-        },
-        {
-          "team_id": 11,
-          "entry": 1,
-          "driver_id": "perez-2026",
-          "driver": "Sergio Perez",
-          "grid": 24,
           "finish": 0,
           "dnf": true,
           "dnf_reason": "mechanical",
@@ -2195,19 +2195,19 @@
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 15,
-          "finish": 13,
+          "grid": 9,
+          "finish": 9,
           "dnf": false,
           "dnf_reason": "",
-          "points": 0
+          "points": 2
         },
         {
           "team_id": 0,
           "entry": 1,
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
-          "grid": 14,
-          "finish": 17,
+          "grid": 16,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2217,17 +2217,6 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 3,
-          "finish": 2,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 18
-        },
-        {
-          "team_id": 1,
-          "entry": 1,
-          "driver_id": "antonelli-2026",
-          "driver": "Kimi Antonelli",
           "grid": 1,
           "finish": 1,
           "dnf": false,
@@ -2235,15 +2224,26 @@
           "points": 25
         },
         {
+          "team_id": 1,
+          "entry": 1,
+          "driver_id": "antonelli-2026",
+          "driver": "Kimi Antonelli",
+          "grid": 3,
+          "finish": 3,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 15
+        },
+        {
           "team_id": 2,
           "entry": 0,
           "driver_id": "leclerc-2026",
           "driver": "Charles Leclerc",
           "grid": 2,
-          "finish": 3,
+          "finish": 5,
           "dnf": false,
           "dnf_reason": "",
-          "points": 15
+          "points": 10
         },
         {
           "team_id": 2,
@@ -2261,7 +2261,7 @@
           "entry": 0,
           "driver_id": "norris-2026",
           "driver": "Lando Norris",
-          "grid": 4,
+          "grid": 5,
           "finish": 4,
           "dnf": false,
           "dnf_reason": "",
@@ -2272,11 +2272,11 @@
           "entry": 1,
           "driver_id": "piastri-2026",
           "driver": "Oscar Piastri",
-          "grid": 5,
-          "finish": 5,
+          "grid": 4,
+          "finish": 2,
           "dnf": false,
           "dnf_reason": "",
-          "points": 10
+          "points": 18
         },
         {
           "team_id": 4,
@@ -2305,8 +2305,8 @@
           "entry": 0,
           "driver_id": "lawson-2026",
           "driver": "Liam Lawson",
-          "grid": 16,
-          "finish": 15,
+          "grid": 18,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2316,11 +2316,11 @@
           "entry": 1,
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
-          "grid": 12,
-          "finish": 10,
+          "grid": 17,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
-          "points": 1
+          "points": 0
         },
         {
           "team_id": 6,
@@ -2328,9 +2328,9 @@
           "driver_id": "gasly-2026",
           "driver": "Pierre Gasly",
           "grid": 10,
-          "finish": 12,
-          "dnf": false,
-          "dnf_reason": "",
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "driver",
           "points": 0
         },
         {
@@ -2338,7 +2338,7 @@
           "entry": 1,
           "driver_id": "colapinto-2026",
           "driver": "Franco Colapinto",
-          "grid": 9,
+          "grid": 12,
           "finish": 11,
           "dnf": false,
           "dnf_reason": "",
@@ -2349,8 +2349,8 @@
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 18,
-          "finish": 18,
+          "grid": 14,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2360,8 +2360,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 11,
-          "finish": 16,
+          "grid": 15,
+          "finish": 12,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2372,7 +2372,7 @@
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
           "grid": 20,
-          "finish": 19,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2382,10 +2382,10 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 19,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "grid": 22,
+          "finish": 19,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -2394,9 +2394,9 @@
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
           "grid": 13,
-          "finish": 14,
-          "dnf": false,
-          "dnf_reason": "",
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "mechanical",
           "points": 0
         },
         {
@@ -2404,19 +2404,19 @@
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 17,
-          "finish": 9,
+          "grid": 11,
+          "finish": 10,
           "dnf": false,
           "dnf_reason": "",
-          "points": 2
+          "points": 1
         },
         {
           "team_id": 10,
           "entry": 0,
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
-          "grid": 22,
-          "finish": 21,
+          "grid": 19,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2437,8 +2437,8 @@
           "entry": 0,
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
-          "grid": 23,
-          "finish": 23,
+          "grid": 24,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2448,7 +2448,7 @@
           "entry": 1,
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
-          "grid": 24,
+          "grid": 23,
           "finish": 22,
           "dnf": false,
           "dnf_reason": "",
@@ -2459,26 +2459,26 @@
     {
       "round": 9,
       "circuit": "Lakeshore Mile",
-      "safety_car": true,
+      "safety_car": false,
       "entries": [
         {
           "team_id": 0,
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 11,
-          "finish": 9,
+          "grid": 8,
+          "finish": 10,
           "dnf": false,
           "dnf_reason": "",
-          "points": 2
+          "points": 1
         },
         {
           "team_id": 0,
           "entry": 1,
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
-          "grid": 12,
-          "finish": 12,
+          "grid": 16,
+          "finish": 14,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2488,17 +2488,6 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 2,
-          "finish": 1,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 25
-        },
-        {
-          "team_id": 1,
-          "entry": 1,
-          "driver_id": "antonelli-2026",
-          "driver": "Kimi Antonelli",
           "grid": 1,
           "finish": 2,
           "dnf": false,
@@ -2506,15 +2495,26 @@
           "points": 18
         },
         {
+          "team_id": 1,
+          "entry": 1,
+          "driver_id": "antonelli-2026",
+          "driver": "Kimi Antonelli",
+          "grid": 2,
+          "finish": 1,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 25
+        },
+        {
           "team_id": 2,
           "entry": 0,
           "driver_id": "leclerc-2026",
           "driver": "Charles Leclerc",
-          "grid": 3,
-          "finish": 4,
+          "grid": 5,
+          "finish": 3,
           "dnf": false,
           "dnf_reason": "",
-          "points": 12
+          "points": 15
         },
         {
           "team_id": 2,
@@ -2532,29 +2532,18 @@
           "entry": 0,
           "driver_id": "norris-2026",
           "driver": "Lando Norris",
-          "grid": 5,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "driver",
-          "points": 0
+          "grid": 4,
+          "finish": 4,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 12
         },
         {
           "team_id": 3,
           "entry": 1,
           "driver_id": "piastri-2026",
           "driver": "Oscar Piastri",
-          "grid": 4,
-          "finish": 3,
-          "dnf": false,
-          "dnf_reason": "",
-          "points": 15
-        },
-        {
-          "team_id": 4,
-          "entry": 0,
-          "driver_id": "verstappen-2026",
-          "driver": "Max Verstappen",
-          "grid": 7,
+          "grid": 3,
           "finish": 6,
           "dnf": false,
           "dnf_reason": "",
@@ -2562,14 +2551,25 @@
         },
         {
           "team_id": 4,
-          "entry": 1,
-          "driver_id": "hadjar-2026",
-          "driver": "Isack Hadjar",
-          "grid": 8,
+          "entry": 0,
+          "driver_id": "verstappen-2026",
+          "driver": "Max Verstappen",
+          "grid": 7,
           "finish": 7,
           "dnf": false,
           "dnf_reason": "",
           "points": 6
+        },
+        {
+          "team_id": 4,
+          "entry": 1,
+          "driver_id": "hadjar-2026",
+          "driver": "Isack Hadjar",
+          "grid": 9,
+          "finish": 8,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 4
         },
         {
           "team_id": 5,
@@ -2577,7 +2577,7 @@
           "driver_id": "lawson-2026",
           "driver": "Liam Lawson",
           "grid": 15,
-          "finish": 14,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2588,7 +2588,7 @@
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
           "grid": 18,
-          "finish": 16,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2598,19 +2598,19 @@
           "entry": 0,
           "driver_id": "gasly-2026",
           "driver": "Pierre Gasly",
-          "grid": 16,
-          "finish": 10,
+          "grid": 10,
+          "finish": 9,
           "dnf": false,
           "dnf_reason": "",
-          "points": 1
+          "points": 2
         },
         {
           "team_id": 6,
           "entry": 1,
           "driver_id": "colapinto-2026",
           "driver": "Franco Colapinto",
-          "grid": 9,
-          "finish": 13,
+          "grid": 14,
+          "finish": 12,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2620,10 +2620,10 @@
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 14,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "grid": 17,
+          "finish": 15,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -2631,8 +2631,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 13,
-          "finish": 15,
+          "grid": 12,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2642,10 +2642,10 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 22,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "driver",
+          "grid": 23,
+          "finish": 19,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -2653,8 +2653,8 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 24,
-          "finish": 20,
+          "grid": 20,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2664,21 +2664,21 @@
           "entry": 0,
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
-          "grid": 10,
-          "finish": 8,
+          "grid": 11,
+          "finish": 11,
           "dnf": false,
           "dnf_reason": "",
-          "points": 4
+          "points": 0
         },
         {
           "team_id": 9,
           "entry": 1,
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
-          "grid": 17,
-          "finish": 11,
-          "dnf": false,
-          "dnf_reason": "",
+          "grid": 13,
+          "finish": 0,
+          "dnf": true,
+          "dnf_reason": "driver",
           "points": 0
         },
         {
@@ -2687,9 +2687,9 @@
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
           "grid": 19,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "finish": 17,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -2697,8 +2697,8 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 21,
-          "finish": 17,
+          "grid": 22,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2708,8 +2708,8 @@
           "entry": 0,
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
-          "grid": 23,
-          "finish": 18,
+          "grid": 24,
+          "finish": 23,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2719,8 +2719,8 @@
           "entry": 1,
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
-          "grid": 20,
-          "finish": 19,
+          "grid": 21,
+          "finish": 22,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2730,15 +2730,15 @@
     {
       "round": 10,
       "circuit": "Cape Verrick",
-      "safety_car": false,
+      "safety_car": true,
       "entries": [
         {
           "team_id": 0,
           "entry": 0,
           "driver_id": "clark-1967",
           "driver": "Jim Clark",
-          "grid": 14,
-          "finish": 13,
+          "grid": 18,
+          "finish": 12,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2748,8 +2748,8 @@
           "entry": 1,
           "driver_id": "hulme-1966",
           "driver": "Denny Hulme",
-          "grid": 18,
-          "finish": 16,
+          "grid": 12,
+          "finish": 19,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2759,7 +2759,7 @@
           "entry": 0,
           "driver_id": "russell-2026",
           "driver": "George Russell",
-          "grid": 1,
+          "grid": 2,
           "finish": 1,
           "dnf": false,
           "dnf_reason": "",
@@ -2770,7 +2770,7 @@
           "entry": 1,
           "driver_id": "antonelli-2026",
           "driver": "Kimi Antonelli",
-          "grid": 5,
+          "grid": 1,
           "finish": 2,
           "dnf": false,
           "dnf_reason": "",
@@ -2792,7 +2792,7 @@
           "entry": 1,
           "driver_id": "hamilton-2026",
           "driver": "Lewis Hamilton",
-          "grid": 7,
+          "grid": 6,
           "finish": 6,
           "dnf": false,
           "dnf_reason": "",
@@ -2803,7 +2803,7 @@
           "entry": 0,
           "driver_id": "norris-2026",
           "driver": "Lando Norris",
-          "grid": 2,
+          "grid": 3,
           "finish": 5,
           "dnf": false,
           "dnf_reason": "",
@@ -2814,7 +2814,7 @@
           "entry": 1,
           "driver_id": "piastri-2026",
           "driver": "Oscar Piastri",
-          "grid": 3,
+          "grid": 5,
           "finish": 4,
           "dnf": false,
           "dnf_reason": "",
@@ -2825,22 +2825,22 @@
           "entry": 0,
           "driver_id": "verstappen-2026",
           "driver": "Max Verstappen",
-          "grid": 6,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
-          "points": 0
+          "grid": 8,
+          "finish": 7,
+          "dnf": false,
+          "dnf_reason": "",
+          "points": 6
         },
         {
           "team_id": 4,
           "entry": 1,
           "driver_id": "hadjar-2026",
           "driver": "Isack Hadjar",
-          "grid": 8,
-          "finish": 7,
+          "grid": 7,
+          "finish": 8,
           "dnf": false,
           "dnf_reason": "",
-          "points": 6
+          "points": 4
         },
         {
           "team_id": 5,
@@ -2858,11 +2858,11 @@
           "entry": 1,
           "driver_id": "lindblad-2026",
           "driver": "Arvid Lindblad",
-          "grid": 9,
-          "finish": 8,
+          "grid": 16,
+          "finish": 13,
           "dnf": false,
           "dnf_reason": "",
-          "points": 4
+          "points": 0
         },
         {
           "team_id": 6,
@@ -2870,17 +2870,17 @@
           "driver_id": "gasly-2026",
           "driver": "Pierre Gasly",
           "grid": 11,
-          "finish": 12,
+          "finish": 10,
           "dnf": false,
           "dnf_reason": "",
-          "points": 0
+          "points": 1
         },
         {
           "team_id": 6,
           "entry": 1,
           "driver_id": "colapinto-2026",
           "driver": "Franco Colapinto",
-          "grid": 16,
+          "grid": 9,
           "finish": 11,
           "dnf": false,
           "dnf_reason": "",
@@ -2891,10 +2891,10 @@
           "entry": 0,
           "driver_id": "ocon-2026",
           "driver": "Esteban Ocon",
-          "grid": 15,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "grid": 14,
+          "finish": 14,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         },
         {
@@ -2902,8 +2902,8 @@
           "entry": 1,
           "driver_id": "bearman-2026",
           "driver": "Oliver Bearman",
-          "grid": 17,
-          "finish": 18,
+          "grid": 15,
+          "finish": 20,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2913,8 +2913,8 @@
           "entry": 0,
           "driver_id": "hulkenberg-2026",
           "driver": "Nico Hulkenberg",
-          "grid": 22,
-          "finish": 20,
+          "grid": 17,
+          "finish": 17,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2924,8 +2924,8 @@
           "entry": 1,
           "driver_id": "bortoleto-2026",
           "driver": "Gabriel Bortoleto",
-          "grid": 20,
-          "finish": 19,
+          "grid": 21,
+          "finish": 21,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2935,8 +2935,8 @@
           "entry": 0,
           "driver_id": "albon-2026",
           "driver": "Alex Albon",
-          "grid": 12,
-          "finish": 15,
+          "grid": 20,
+          "finish": 16,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2947,10 +2947,10 @@
           "driver_id": "sainz-2026",
           "driver": "Carlos Sainz",
           "grid": 13,
-          "finish": 10,
+          "finish": 15,
           "dnf": false,
           "dnf_reason": "",
-          "points": 1
+          "points": 0
         },
         {
           "team_id": 10,
@@ -2958,7 +2958,7 @@
           "driver_id": "alonso-2026",
           "driver": "Fernando Alonso",
           "grid": 19,
-          "finish": 14,
+          "finish": 22,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2968,8 +2968,8 @@
           "entry": 1,
           "driver_id": "stroll-2026",
           "driver": "Lance Stroll",
-          "grid": 21,
-          "finish": 17,
+          "grid": 22,
+          "finish": 18,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2980,7 +2980,7 @@
           "driver_id": "bottas-2026",
           "driver": "Valtteri Bottas",
           "grid": 23,
-          "finish": 21,
+          "finish": 24,
           "dnf": false,
           "dnf_reason": "",
           "points": 0
@@ -2991,9 +2991,9 @@
           "driver_id": "perez-2026",
           "driver": "Sergio Perez",
           "grid": 24,
-          "finish": 0,
-          "dnf": true,
-          "dnf_reason": "mechanical",
+          "finish": 23,
+          "dnf": false,
+          "dnf_reason": "",
           "points": 0
         }
       ]
@@ -3003,39 +3003,31 @@
     {
       "team_id": 1,
       "name": "Mercedes",
-      "points": 399,
-      "wins": 9,
-      "podiums": 18,
-      "dnfs": 1
-    },
-    {
-      "team_id": 2,
-      "name": "Ferrari",
-      "points": 242,
-      "wins": 1,
-      "podiums": 8,
+      "points": 412,
+      "wins": 10,
+      "podiums": 19,
       "dnfs": 0
     },
     {
       "team_id": 3,
       "name": "McLaren",
-      "points": 209,
+      "points": 225,
       "wins": 0,
-      "podiums": 4,
+      "podiums": 3,
+      "dnfs": 0
+    },
+    {
+      "team_id": 2,
+      "name": "Ferrari",
+      "points": 221,
+      "wins": 0,
+      "podiums": 8,
       "dnfs": 2
     },
     {
       "team_id": 4,
       "name": "Red Bull",
-      "points": 112,
-      "wins": 0,
-      "podiums": 0,
-      "dnfs": 1
-    },
-    {
-      "team_id": 5,
-      "name": "Racing Bulls",
-      "points": 21,
+      "points": 114,
       "wins": 0,
       "podiums": 0,
       "dnfs": 0
@@ -3043,23 +3035,31 @@
     {
       "team_id": 6,
       "name": "Alpine",
-      "points": 16,
+      "points": 20,
       "wins": 0,
       "podiums": 0,
       "dnfs": 1
     },
     {
-      "team_id": 9,
-      "name": "Williams",
-      "points": 7,
+      "team_id": 5,
+      "name": "Racing Bulls",
+      "points": 12,
       "wins": 0,
       "podiums": 0,
-      "dnfs": 2
+      "dnfs": 0
     },
     {
       "team_id": 0,
       "name": "Your Team",
-      "points": 4,
+      "points": 3,
+      "wins": 0,
+      "podiums": 0,
+      "dnfs": 3
+    },
+    {
+      "team_id": 9,
+      "name": "Williams",
+      "points": 3,
       "wins": 0,
       "podiums": 0,
       "dnfs": 2
@@ -3070,7 +3070,7 @@
       "points": 0,
       "wins": 0,
       "podiums": 0,
-      "dnfs": 4
+      "dnfs": 2
     },
     {
       "team_id": 8,
@@ -3078,7 +3078,7 @@
       "points": 0,
       "wins": 0,
       "podiums": 0,
-      "dnfs": 7
+      "dnfs": 3
     },
     {
       "team_id": 10,
@@ -3094,7 +3094,7 @@
       "points": 0,
       "wins": 0,
       "podiums": 0,
-      "dnfs": 4
+      "dnfs": 2
     }
   ],
   "drivers": [
@@ -3102,98 +3102,91 @@
       "driver_id": "russell-2026",
       "name": "George Russell",
       "team_id": 1,
-      "points": 215,
-      "wins": 5
+      "points": 243,
+      "wins": 9
     },
     {
       "driver_id": "antonelli-2026",
       "name": "Kimi Antonelli",
       "team_id": 1,
-      "points": 184,
-      "wins": 4
+      "points": 169,
+      "wins": 1
     },
     {
       "driver_id": "leclerc-2026",
       "name": "Charles Leclerc",
       "team_id": 2,
-      "points": 152,
-      "wins": 1
+      "points": 139,
+      "wins": 0
     },
     {
       "driver_id": "norris-2026",
       "name": "Lando Norris",
       "team_id": 3,
-      "points": 109,
+      "points": 119,
       "wins": 0
     },
     {
       "driver_id": "piastri-2026",
       "name": "Oscar Piastri",
       "team_id": 3,
-      "points": 100,
+      "points": 106,
       "wins": 0
     },
     {
       "driver_id": "hamilton-2026",
       "name": "Lewis Hamilton",
       "team_id": 2,
-      "points": 90,
+      "points": 82,
       "wins": 0
     },
     {
       "driver_id": "verstappen-2026",
       "name": "Max Verstappen",
       "team_id": 4,
-      "points": 66,
+      "points": 70,
       "wins": 0
     },
     {
       "driver_id": "hadjar-2026",
       "name": "Isack Hadjar",
       "team_id": 4,
-      "points": 46,
-      "wins": 0
-    },
-    {
-      "driver_id": "lindblad-2026",
-      "name": "Arvid Lindblad",
-      "team_id": 5,
-      "points": 11,
-      "wins": 0
-    },
-    {
-      "driver_id": "lawson-2026",
-      "name": "Liam Lawson",
-      "team_id": 5,
-      "points": 10,
-      "wins": 0
-    },
-    {
-      "driver_id": "colapinto-2026",
-      "name": "Franco Colapinto",
-      "team_id": 6,
-      "points": 9,
+      "points": 44,
       "wins": 0
     },
     {
       "driver_id": "gasly-2026",
       "name": "Pierre Gasly",
       "team_id": 6,
-      "points": 7,
+      "points": 14,
+      "wins": 0
+    },
+    {
+      "driver_id": "lawson-2026",
+      "name": "Liam Lawson",
+      "team_id": 5,
+      "points": 6,
+      "wins": 0
+    },
+    {
+      "driver_id": "lindblad-2026",
+      "name": "Arvid Lindblad",
+      "team_id": 5,
+      "points": 6,
+      "wins": 0
+    },
+    {
+      "driver_id": "colapinto-2026",
+      "name": "Franco Colapinto",
+      "team_id": 6,
+      "points": 6,
       "wins": 0
     },
     {
       "driver_id": "clark-1967",
       "name": "Jim Clark",
       "team_id": 0,
-      "points": 4,
-      "wins": 0
-    },
-    {
-      "driver_id": "albon-2026",
-      "name": "Alex Albon",
-      "team_id": 9,
-      "points": 4,
+      "points": 3,
       "wins": 0
     },
     {
@@ -3239,6 +3232,13 @@
       "wins": 0
     },
     {
+      "driver_id": "albon-2026",
+      "name": "Alex Albon",
+      "team_id": 9,
+      "points": 0,
+      "wins": 0
+    },
+    {
       "driver_id": "alonso-2026",
       "name": "Fernando Alonso",
       "team_id": 10,
@@ -3270,11 +3270,11 @@
   "player": {
     "team_id": 0,
     "name": "Your Team",
-    "points": 4,
+    "points": 3,
     "wins": 0,
     "podiums": 0,
-    "dnfs": 2
+    "dnfs": 3
   },
-  "player_position": 8,
-  "share": "Lights Out · Season 1\nP8 of 12 · 4 pts · 2 DNFs\n⬜⬜⬜⬜⬜⬜🏁⬜🏁⬜"
+  "player_position": 7,
+  "share": "Lights Out · Season 1\nP7 of 12 · 3 pts · 3 DNFs\n⬜⬜⬜⬜⬜⬜⬜🏁🏁⬜"
 }
