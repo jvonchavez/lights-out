@@ -2,94 +2,81 @@ package sim
 
 import (
 	"cmp"
-	"errors"
 	"slices"
-	"strconv"
 )
+
+// PlayerTeamName is what the player's constructor is called in standings.
+const PlayerTeamName = "Your Team"
 
 // RunSeason plays an entire season and returns the result. It is the one
 // exported entry point of this package, and the same function the browser
 // calls through WASM and the server calls natively to verify a submission.
 //
-// It is a pure function of (seed, decisions): no wall-clock time, no map
-// iteration order affecting results, no unseeded randomness. That is what
-// makes the leaderboard trustworthy -- a cheater would have to find
-// decisions that genuinely produce a high score, which is just playing well.
+// It is a pure function of (seed, picks): no wall-clock time, no map
+// iteration order affecting results, no unseeded randomness. The server is
+// the sole authority on what a set of picks is worth -- it re-derives the
+// rolls from the seed and replays the picks itself, so scores cannot be
+// fabricated. They can be searched for; docs/_README.md says so plainly.
+//
+// RunPartial is gone. It existed to show the two races each in-season
+// window unlocked, and there are no in-season decisions left to give
+// feedback on: the team is locked in before round one and the whole season
+// resolves at once. The race-by-race reveal is now presentation, done in
+// the client against a result it already holds.
 func RunSeason(seed int64, picks []int) (SeasonResult, error) {
-	if len(picks) != WindowCount {
-		return SeasonResult{}, errors.New("sim: got " + strconv.Itoa(len(picks)) +
-			" picks, want " + strconv.Itoa(WindowCount))
-	}
-	return RunPartial(seed, picks)
-}
-
-// RunPartial resolves only the races a prefix of picks unlocks.
-//
-// Races 1-2 depend on pick 1 alone, races 3-4 on picks 1-2, and so on,
-// because the RNG advances strictly in round order. So after k picks the
-// first 2k races are fully determined and can be shown before the next deal
-// -- which is what lets the client give each window a consequence instead
-// of dumping ten races at the end.
-//
-// A full-length picks slice makes this identical to RunSeason.
-func RunPartial(seed int64, picks []int) (SeasonResult, error) {
 	season := GenerateSeason(seed)
-	deals := DealsFor(seed)
 
-	if len(picks) > WindowCount {
-		return SeasonResult{}, errors.New("sim: got " + strconv.Itoa(len(picks)) +
-			" picks, want at most " + strconv.Itoa(WindowCount))
+	lineup, err := BuildLineup(season.Rolls, picks)
+	if err != nil {
+		return SeasonResult{}, err
 	}
-	for i, p := range picks {
-		if p < 0 || p >= DealSize {
-			return SeasonResult{}, errors.New("sim: window " + strconv.Itoa(i+1) +
-				" picked card " + strconv.Itoa(p) + ", want 0.." + strconv.Itoa(DealSize-1))
+
+	teams := make([]Team, 0, TeamCount)
+	teams = append(teams, Team{ID: 0, Name: PlayerTeamName, Livery: "#E10600", Lineup: lineup})
+	teams = append(teams, season.Rivals...)
+
+	// The field is built in team ID order, then entry order within a team.
+	// That order is the determinism contract for every draw below.
+	field := make([]*entryState, 0, FieldSize)
+	for _, t := range teams {
+		for _, e := range entriesFor(t) {
+			field = append(field, e)
 		}
 	}
-
-	// Rounds are unlocked two at a time, one pair per window.
-	unlocked := len(picks) * (RaceCount / WindowCount)
 
 	// A SECOND RNG, seeded separately from the one GenerateSeason consumed,
 	// so that changing generation logic later cannot shift race outcomes.
 	rng := NewRNG(seed ^ raceSalt)
 
-	cars := make([]*carState, len(season.Teams))
-	for i, t := range season.Teams {
-		cars[i] = newCarState(t)
-	}
-
-	standings := make([]Standing, len(season.Teams))
-	for i, t := range season.Teams {
+	standings := make([]Standing, len(teams))
+	for i, t := range teams {
 		standings[i] = Standing{TeamID: t.ID, Name: t.Name}
 	}
 
-	build := make([]Card, 0, WindowCount)
+	// Drivers are keyed by team and entry rather than by driver ID: the
+	// same driver can legitimately appear twice on the grid, once in your
+	// team and once in the real one you took them from.
+	type driverKey struct{ teamID, entry int }
+	driverPoints := map[driverKey]*DriverStanding{}
+	driverOrder := make([]driverKey, 0, FieldSize)
+	for _, e := range field {
+		k := driverKey{e.teamID, e.entry}
+		driverPoints[k] = &DriverStanding{
+			DriverID: e.driver.ID,
+			Name:     e.driver.Name,
+			TeamID:   e.teamID,
+		}
+		driverOrder = append(driverOrder, k)
+	}
 
-	races := make([]RaceResult, 0, unlocked)
+	races := make([]RaceResult, 0, RaceCount)
 	for round, circuit := range season.Calendar {
-		if round >= unlocked {
-			break
-		}
-		// Development is banked only at window rounds, in team ID order:
-		// car 0 is the player, every other car is its archetype's
-		// deterministic choice from the same deal.
-		if w, ok := windowAt(round); ok {
-			chosen := deals[w][picks[w]]
-			cars[0].apply(chosen.Effect)
-			build = append(build, chosen)
-			for i := 1; i < len(cars); i++ {
-				j := rivalPick(cars[i].team, deals[w], w, season.Calendar)
-				cars[i].apply(deals[w][j].Effect)
-			}
-		}
-
-		grid := qualify(cars, circuit.Profile, rng)
-		res := runRace(cars, circuit, grid, rng)
+		grid := qualify(field, round, circuit.Profile, rng)
+		res := runRace(field, round, circuit, grid, rng)
 		res.Round = round + 1
 		races = append(races, res)
 
-		for _, c := range res.Cars {
+		for _, c := range res.Entries {
 			s := &standings[c.TeamID]
 			s.Points += c.Points
 			switch {
@@ -100,6 +87,12 @@ func RunPartial(seed int64, picks []int) (SeasonResult, error) {
 				s.Podiums++
 			case c.Finish <= 3:
 				s.Podiums++
+			}
+
+			d := driverPoints[driverKey{c.TeamID, c.Entry}]
+			d.Points += c.Points
+			if c.Finish == 1 {
+				d.Wins++
 			}
 		}
 	}
@@ -127,25 +120,37 @@ func RunPartial(seed int64, picks []int) (SeasonResult, error) {
 		}
 	}
 
+	drivers := make([]DriverStanding, 0, FieldSize)
+	for _, k := range driverOrder {
+		drivers = append(drivers, *driverPoints[k])
+	}
+	slices.SortFunc(drivers, func(a, b DriverStanding) int {
+		if a.Points != b.Points {
+			return cmp.Compare(b.Points, a.Points)
+		}
+		if a.Wins != b.Wins {
+			return cmp.Compare(b.Wins, a.Wins)
+		}
+		if a.TeamID != b.TeamID {
+			return cmp.Compare(a.TeamID, b.TeamID)
+		}
+		return cmp.Compare(a.DriverID, b.DriverID)
+	})
+
+	out := make([]int, len(picks))
+	copy(out, picks)
+
 	return SeasonResult{
 		SimVersion: Version,
 		Seed:       seed,
-		Build:      build,
+		Rolls:      season.Rolls,
+		Picks:      out,
+		Lineup:     lineup,
 		Races:      races,
 		Standings:  standings,
+		Drivers:    drivers,
 		Player:     player,
 		PlayerPos:  playerPos,
 		Share:      shareString(seed, player, playerPos, races),
 	}, nil
-}
-
-// windowAt reports whether a development window precedes this round, and
-// which window it is.
-func windowAt(round int) (int, bool) {
-	for w, r := range WindowRounds {
-		if r == round {
-			return w, true
-		}
-	}
-	return 0, false
 }

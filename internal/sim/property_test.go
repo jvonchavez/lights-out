@@ -7,12 +7,24 @@ import (
 	"pgregory.net/rapid"
 )
 
-// drawPicks generates a valid pick set by construction: one in-range card
-// index per development window.
+// drawPicks generates a legal draft by construction: at each roll it takes
+// only items whose slot still has room and whose removal still leaves
+// enough rolls to fill everything else.
 func drawPicks(rt *rapid.T) []int {
-	picks := make([]int, WindowCount)
-	for i := range picks {
-		picks[i] = rapid.IntRange(0, DealSize-1).Draw(rt, "pick")
+	picks := make([]int, RollCount)
+	filled := map[Slot]int{}
+	for i := 0; i < RollCount; i++ {
+		var legal []int
+		for k := ItemCar; k < itemKindCount; k++ {
+			s := slotFor(k)
+			if filled[s] >= slotCapacity[s] || !fillable(filled, s, RollCount-i) {
+				continue
+			}
+			legal = append(legal, int(k))
+		}
+		p := rapid.SampledFrom(legal).Draw(rt, "pick")
+		picks[i] = p
+		filled[slotFor(ItemKind(p))]++
 	}
 	return picks
 }
@@ -27,7 +39,6 @@ func TestPropertiesOverGeneratedSeasons(t *testing.T) {
 			rt.Fatalf("valid input rejected: %v", err)
 		}
 
-		// Points are never negative.
 		for _, s := range res.Standings {
 			if s.Points < 0 {
 				rt.Errorf("team %d has negative points %d", s.TeamID, s.Points)
@@ -35,34 +46,40 @@ func TestPropertiesOverGeneratedSeasons(t *testing.T) {
 			if s.Podiums < s.Wins {
 				rt.Errorf("team %d has %d wins but only %d podiums", s.TeamID, s.Wins, s.Podiums)
 			}
-			if s.DNFs > RaceCount {
+			// Two cars per team, so a team can retire twice per round.
+			if s.DNFs > RaceCount*CarsPerTeam {
 				rt.Errorf("team %d has %d DNFs across %d races", s.TeamID, s.DNFs, RaceCount)
 			}
 		}
 
-		// Championship totals equal the sum of race points.
+		// Championship totals equal the sum of race points, and the driver
+		// table accounts for exactly the same points as the constructors'.
 		raceTotal := 0
 		for _, r := range res.Races {
-			for _, c := range r.Cars {
+			for _, c := range r.Entries {
 				raceTotal += c.Points
 			}
 		}
-		standingsTotal := 0
+		standingsTotal, driversTotal := 0, 0
 		for _, s := range res.Standings {
 			standingsTotal += s.Points
+		}
+		for _, d := range res.Drivers {
+			driversTotal += d.Points
 		}
 		if raceTotal != standingsTotal {
 			rt.Errorf("race points %d != standings points %d", raceTotal, standingsTotal)
 		}
+		if driversTotal != standingsTotal {
+			rt.Errorf("driver points %d != constructor points %d", driversTotal, standingsTotal)
+		}
 
-		// Every race classifies every car exactly once, with no shared
-		// finishing position among survivors.
 		for _, r := range res.Races {
-			if len(r.Cars) != TeamCount {
-				rt.Errorf("round %d classified %d cars, want %d", r.Round, len(r.Cars), TeamCount)
+			if len(r.Entries) != FieldSize {
+				rt.Errorf("round %d classified %d cars, want %d", r.Round, len(r.Entries), FieldSize)
 			}
 			seen := map[int]bool{}
-			for _, c := range r.Cars {
+			for _, c := range r.Entries {
 				if c.DNF {
 					if c.Points != 0 || c.Finish != 0 {
 						rt.Errorf("round %d: DNF has finish %d points %d", r.Round, c.Finish, c.Points)
@@ -76,7 +93,6 @@ func TestPropertiesOverGeneratedSeasons(t *testing.T) {
 			}
 		}
 
-		// RunSeason is deterministic.
 		again, err := RunSeason(seed, ds)
 		if err != nil {
 			rt.Fatalf("second run errored: %v", err)
@@ -89,18 +105,50 @@ func TestPropertiesOverGeneratedSeasons(t *testing.T) {
 
 func TestPropertyEveryPickMustBeInRange(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
-		// Any out-of-range card index must be rejected, always.
-		bad := rapid.IntRange(DealSize, DealSize*20).Draw(rt, "bad")
-		window := rapid.IntRange(0, WindowCount-1).Draw(rt, "window")
-		picks := evenPicks()
-		picks[window] = bad
+		bad := rapid.IntRange(int(itemKindCount), int(itemKindCount)*20).Draw(rt, "bad")
+		roll := rapid.IntRange(0, RollCount-1).Draw(rt, "roll")
+		picks := legalPicks()
+		picks[roll] = bad
 		if _, err := RunSeason(1, picks); err == nil {
-			rt.Errorf("card index %d in window %d was accepted, deal size is %d", bad, window+1, DealSize)
+			rt.Errorf("item index %d at roll %d was accepted, there are only %d items",
+				bad, roll+1, itemKindCount)
 		}
 	})
 }
 
-func TestPropertyBuildAlwaysMatchesTheDeal(t *testing.T) {
+// A draft that overfills a slot -- three drivers and no car, say -- must be
+// rejected however plausible each individual index looks. This is the check
+// the old range test could not express, because a card draft had only one
+// kind of slot.
+func TestPropertyIllegalSlotShapesAreRejected(t *testing.T) {
+	rapid.Check(t, func(rt *rapid.T) {
+		picks := make([]int, RollCount)
+		for i := range picks {
+			picks[i] = rapid.IntRange(0, int(itemKindCount)-1).Draw(rt, "pick")
+		}
+		filled := map[Slot]int{}
+		for _, p := range picks {
+			filled[slotFor(ItemKind(p))]++
+		}
+		legal := true
+		for s, cap := range slotCapacity {
+			if filled[s] != cap {
+				legal = false
+			}
+		}
+		_, err := RunSeason(7, picks)
+		if legal && err != nil {
+			rt.Errorf("legal draft %v rejected: %v", picks, err)
+		}
+		if !legal && err == nil {
+			rt.Errorf("illegal draft %v accepted", picks)
+		}
+	})
+}
+
+// What the season simulates must be exactly what the rolls offered and the
+// picks selected. This is the trust boundary stated as a property.
+func TestPropertyLineupAlwaysMatchesTheRolls(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		seed := rapid.Int64().Draw(rt, "seed")
 		picks := drawPicks(rt)
@@ -108,12 +156,16 @@ func TestPropertyBuildAlwaysMatchesTheDeal(t *testing.T) {
 		if err != nil {
 			rt.Fatalf("valid picks rejected: %v", err)
 		}
-		deals := DealsFor(seed)
-		for w, p := range picks {
-			if res.Build[w].ID != deals[w][p].ID {
-				rt.Errorf("window %d built %q but was dealt %q at index %d",
-					w, res.Build[w].ID, deals[w][p].ID, p)
-			}
+		rolls := RollsFor(seed)
+		if rolls != res.Rolls {
+			rt.Error("result rolls differ from RollsFor(seed)")
+		}
+		want, err := BuildLineup(rolls, picks)
+		if err != nil {
+			rt.Fatalf("BuildLineup rejected picks RunSeason accepted: %v", err)
+		}
+		if !reflect.DeepEqual(want, res.Lineup) {
+			rt.Error("result lineup differs from replaying the picks against the rolls")
 		}
 	})
 }
@@ -125,7 +177,7 @@ func TestPropertySeasonGenerationIsStable(t *testing.T) {
 		if !reflect.DeepEqual(a, b) {
 			rt.Error("GenerateSeason is not deterministic")
 		}
-		if len(a.Calendar) != RaceCount || len(a.Teams) != TeamCount {
+		if len(a.Calendar) != RaceCount || len(a.Rivals) != TeamCount-1 {
 			rt.Errorf("malformed season for seed %d", seed)
 		}
 	})

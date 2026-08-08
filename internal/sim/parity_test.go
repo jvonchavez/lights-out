@@ -34,8 +34,8 @@ func TestNativeWASMParity(t *testing.T) {
 	}
 
 	// Rotate through every scripted strategy so parity is exercised across
-	// the whole space of card choices, not just one shape.
-	names := []string{"greedy", "cautious", "aerofirst", "adaptive", "first"}
+	// the whole space of drafts, not just one shape.
+	names := StrategyNames
 	cases := make([]parityCase, 0, seeds)
 	for i := 0; i < seeds; i++ {
 		seed := int64(i) * 7919 // spread seeds across the range

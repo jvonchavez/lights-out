@@ -71,7 +71,7 @@ func (s *Scheduler) PublishToday(ctx context.Context) (store.Season, error) {
 	if err != nil {
 		return store.Season{}, err
 	}
-	field, err := json.Marshal(season.Teams)
+	field, err := json.Marshal(season.Rivals)
 	if err != nil {
 		return store.Season{}, err
 	}

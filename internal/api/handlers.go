@@ -42,24 +42,22 @@ type seasonResponse struct {
 	SimVersion string          `json:"sim_version"`
 	Calendar   json.RawMessage `json:"calendar"`
 	Field      json.RawMessage `json:"field"`
-	// Deals are re-derived from the seed rather than stored, so the client
-	// can render cards before the WASM module finishes loading and the
+	// Rolls are re-derived from the seed rather than stored, so the client
+	// can render the draft before the WASM module finishes loading and the
 	// server is always the authority on what was offered.
-	Deals        [sim.WindowCount][sim.DealSize]sim.Card `json:"deals"`
-	WindowRounds [sim.WindowCount]int                    `json:"window_rounds"`
-	ClosesAt     time.Time                               `json:"closes_at"`
+	Rolls    [sim.RollCount]sim.TeamEra `json:"rolls"`
+	ClosesAt time.Time                  `json:"closes_at"`
 }
 
 func seasonToResponse(row store.Season) seasonResponse {
 	return seasonResponse{
-		ID:           row.ID,
-		Seed:         strconv.FormatInt(row.Seed, 10),
-		SimVersion:   row.SimVersion,
-		Calendar:     row.Calendar,
-		Field:        row.Field,
-		Deals:        sim.DealsFor(row.Seed),
-		WindowRounds: sim.WindowRounds,
-		ClosesAt:     row.ClosesAt,
+		ID:         row.ID,
+		Seed:       strconv.FormatInt(row.Seed, 10),
+		SimVersion: row.SimVersion,
+		Calendar:   row.Calendar,
+		Field:      row.Field,
+		Rolls:      sim.RollsFor(row.Seed),
+		ClosesAt:   row.ClosesAt,
 	}
 }
 

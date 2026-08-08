@@ -2,40 +2,69 @@ package sim
 
 import "testing"
 
-// fieldOf builds n cars all on the baseline, for tests that care about
-// ordering rather than about any particular car being fast.
-func fieldOf(n int) []*carState {
-	cars := make([]*carState, n)
-	for i := range cars {
-		cars[i] = newCarState(Team{ID: i, Start: Ratings{StartRating, StartRating, StartRating}, DriverSkill: 2 * One})
+// baselineCar and friends are deliberately flat: every rating sits at a
+// mid value and the principal sits exactly at DevBaseline so development
+// contributes nothing. Tests that care about ordering rather than about any
+// particular car being fast build their field from these.
+func baselineCar() CarSpec {
+	return CarSpec{ID: "base", Name: "Base", Power: 75, Cornering: 75, Aero: 75, Reliability: 85}
+}
+
+func baselineDriver() DriverSpec {
+	return DriverSpec{ID: "d", Name: "D", Pace: 75, Racecraft: 75,
+		Consistency: ConsistencyBaseline, Composure: 80}
+}
+
+func testTeam(id int) Team {
+	return Team{ID: id, Name: "T", Lineup: Lineup{
+		Car:       baselineCar(),
+		Drivers:   [2]DriverSpec{baselineDriver(), baselineDriver()},
+		Engineer:  EngineerSpec{ID: "e", Name: "E", Setup: 75, Strategy: 75, Ops: 75},
+		Principal: PrincipalSpec{ID: "p", Name: "P", Development: DevBaseline, Leadership: 75, Nerve: 75},
+	}}
+}
+
+// fieldOf builds n teams of CarsPerTeam cars each, in field order.
+func fieldOf(n int) []*entryState {
+	field := make([]*entryState, 0, n*CarsPerTeam)
+	for i := 0; i < n; i++ {
+		for _, e := range entriesFor(testTeam(i)) {
+			field = append(field, e)
+		}
 	}
-	return cars
+	return field
+}
+
+func balanced() Circuit {
+	return Circuit{Name: "T", Archetype: "balanced", Profile: Profiles["balanced"]}
 }
 
 func TestQualifyingReturnsEveryCarOnce(t *testing.T) {
-	cars := fieldOf(TeamCount)
-	grid := qualify(cars, Profiles["balanced"], NewRNG(1))
-	if len(grid) != TeamCount {
-		t.Fatalf("grid has %d entries, want %d", len(grid), TeamCount)
+	field := fieldOf(TeamCount)
+	grid := qualify(field, 0, Profiles["balanced"], NewRNG(1))
+	if len(grid) != FieldSize {
+		t.Fatalf("grid has %d entries, want %d", len(grid), FieldSize)
 	}
-	seen := map[int]bool{}
-	for _, id := range grid {
-		if seen[id] {
-			t.Errorf("team %d appears twice on the grid", id)
+	seen := map[gridKey]bool{}
+	for _, k := range grid {
+		if seen[k] {
+			t.Errorf("car %v appears twice on the grid", k)
 		}
-		seen[id] = true
+		seen[k] = true
 	}
 }
 
 func TestQualifyingFavoursTheFasterCar(t *testing.T) {
 	poles := 0
 	for seed := int64(0); seed < 100; seed++ {
-		cars := fieldOf(TeamCount)
-		// Give team 5 a commanding advantage: +30.0 in every area.
-		for i := 0; i < 30; i++ {
-			cars[5].apply(Decision{Chassis: 10, Engine: 10, Aero: 10})
+		field := fieldOf(TeamCount)
+		// Give team 5 a commanding advantage in every area.
+		for _, e := range field {
+			if e.teamID == 5 {
+				e.car = CarSpec{ID: "fast", Name: "Fast", Power: 99, Cornering: 99, Aero: 99, Reliability: 99}
+			}
 		}
-		if qualify(cars, Profiles["balanced"], NewRNG(seed))[0] == 5 {
+		if qualify(field, 0, Profiles["balanced"], NewRNG(seed))[0].teamID == 5 {
 			poles++
 		}
 	}
@@ -45,16 +74,20 @@ func TestQualifyingFavoursTheFasterCar(t *testing.T) {
 }
 
 func TestDNFScoresZeroAndIsNotClassified(t *testing.T) {
-	cars := fieldOf(TeamCount)
-	// Force certain failure for team 3 by spending absurdly on performance.
-	for i := 0; i < 200; i++ {
-		cars[3].apply(Decision{Engine: 100})
+	field := fieldOf(TeamCount)
+	// A 1950s-grade car with a poor operation: high failure, guaranteed to
+	// bite somewhere across 200 races.
+	for _, e := range field {
+		if e.teamID == 3 {
+			e.car.Reliability = 40
+			e.engineer.Ops = 60
+		}
 	}
 	found := false
 	for seed := int64(0); seed < 200 && !found; seed++ {
-		grid := qualify(cars, Profiles["balanced"], NewRNG(seed))
-		res := runRace(cars, Circuit{Name: "T", Archetype: "balanced", Profile: Profiles["balanced"]}, grid, NewRNG(seed))
-		for _, c := range res.Cars {
+		grid := qualify(field, 0, Profiles["balanced"], NewRNG(seed))
+		res := runRace(field, 0, balanced(), grid, NewRNG(seed))
+		for _, c := range res.Entries {
 			if c.TeamID == 3 && c.DNF {
 				found = true
 				if c.Points != 0 {
@@ -63,21 +96,41 @@ func TestDNFScoresZeroAndIsNotClassified(t *testing.T) {
 				if c.Finish != 0 {
 					t.Errorf("DNF has finish position %d, want 0", c.Finish)
 				}
+				if c.DNFReason != DNFMechanical && c.DNFReason != DNFDriver {
+					t.Errorf("DNF reason %q, want a named cause", c.DNFReason)
+				}
 			}
 		}
 	}
 	if !found {
-		t.Fatal("a car at the 60%% failure clamp never DNF'd across 200 races")
+		t.Fatal("an unreliable car never DNF'd across 200 races")
+	}
+}
+
+// A finisher must never carry a retirement reason, and a retirement must
+// always carry one. The reel reads this field directly.
+func TestDNFReasonMatchesDNF(t *testing.T) {
+	field := fieldOf(TeamCount)
+	for seed := int64(0); seed < 50; seed++ {
+		grid := qualify(field, 0, Profiles["balanced"], NewRNG(seed))
+		for _, c := range runRace(field, 0, balanced(), grid, NewRNG(seed)).Entries {
+			if c.DNF && c.DNFReason == "" {
+				t.Errorf("seed %d: DNF with no reason", seed)
+			}
+			if !c.DNF && c.DNFReason != "" {
+				t.Errorf("seed %d: finisher carries reason %q", seed, c.DNFReason)
+			}
+		}
 	}
 }
 
 func TestPointsMatchTable(t *testing.T) {
-	cars := fieldOf(TeamCount)
-	grid := qualify(cars, Profiles["balanced"], NewRNG(42))
-	res := runRace(cars, Circuit{Name: "T", Archetype: "balanced", Profile: Profiles["balanced"]}, grid, NewRNG(42))
+	field := fieldOf(TeamCount)
+	grid := qualify(field, 0, Profiles["balanced"], NewRNG(42))
+	res := runRace(field, 0, balanced(), grid, NewRNG(42))
 
-	byFinish := map[int]CarResult{}
-	for _, c := range res.Cars {
+	byFinish := map[int]EntryResult{}
+	for _, c := range res.Entries {
 		if !c.DNF {
 			byFinish[c.Finish] = c
 		}
@@ -91,54 +144,55 @@ func TestPointsMatchTable(t *testing.T) {
 			t.Errorf("P%d scored %d, want %d", pos+1, c.Points, want)
 		}
 	}
-	if c, ok := byFinish[11]; ok && c.Points != 0 {
-		t.Errorf("P11 scored %d, want 0", c.Points)
+	if c, ok := byFinish[len(PointsTable)+1]; ok && c.Points != 0 {
+		t.Errorf("P%d scored %d, want 0", len(PointsTable)+1, c.Points)
 	}
 }
 
-func TestCarsAlwaysSortedByTeamID(t *testing.T) {
-	cars := fieldOf(TeamCount)
-	grid := qualify(cars, Profiles["power"], NewRNG(8))
-	res := runRace(cars, Circuit{Name: "T", Archetype: "power", Profile: Profiles["power"]}, grid, NewRNG(8))
-	for i, c := range res.Cars {
-		if c.TeamID != i {
-			t.Fatalf("Cars[%d] has TeamID %d -- results must be sorted by team ID for stable JSON", i, c.TeamID)
+func TestEntriesAlwaysSortedByTeamThenEntry(t *testing.T) {
+	field := fieldOf(TeamCount)
+	grid := qualify(field, 0, Profiles["power"], NewRNG(8))
+	c := Circuit{Name: "T", Archetype: "power", Profile: Profiles["power"]}
+	res := runRace(field, 0, c, grid, NewRNG(8))
+	for i, e := range res.Entries {
+		wantTeam, wantEntry := i/CarsPerTeam, i%CarsPerTeam
+		if e.TeamID != wantTeam || e.Entry != wantEntry {
+			t.Fatalf("Entries[%d] is team %d entry %d, want %d/%d -- results must be sorted for stable JSON",
+				i, e.TeamID, e.Entry, wantTeam, wantEntry)
 		}
 	}
 }
 
 func TestEveryCarIsAccountedFor(t *testing.T) {
-	cars := fieldOf(TeamCount)
-	grid := qualify(cars, Profiles["technical"], NewRNG(3))
-	res := runRace(cars, Circuit{Name: "T", Archetype: "technical", Profile: Profiles["technical"]}, grid, NewRNG(3))
-	if len(res.Cars) != TeamCount {
-		t.Fatalf("classified %d cars, want %d", len(res.Cars), TeamCount)
+	field := fieldOf(TeamCount)
+	c := Circuit{Name: "T", Archetype: "technical", Profile: Profiles["technical"]}
+	grid := qualify(field, 0, c.Profile, NewRNG(3))
+	res := runRace(field, 0, c, grid, NewRNG(3))
+	if len(res.Entries) != FieldSize {
+		t.Fatalf("classified %d cars, want %d", len(res.Entries), FieldSize)
 	}
 	finishes := map[int]bool{}
-	for _, c := range res.Cars {
-		if c.DNF {
+	for _, e := range res.Entries {
+		if e.DNF {
 			continue
 		}
-		if finishes[c.Finish] {
-			t.Errorf("two cars share P%d", c.Finish)
+		if finishes[e.Finish] {
+			t.Errorf("two cars share P%d", e.Finish)
 		}
-		finishes[c.Finish] = true
+		finishes[e.Finish] = true
 	}
 }
 
 func TestOvertakingIsHarderAtTechnicalCircuits(t *testing.T) {
-	// Measure how often the pole-sitter is beaten. A power circuit's low
-	// overtake difficulty should let the field through more often than a
-	// technical circuit's high one.
 	beaten := func(arch string) int {
 		n := 0
 		for seed := int64(0); seed < 400; seed++ {
-			cars := fieldOf(TeamCount)
+			field := fieldOf(TeamCount)
 			c := Circuit{Name: arch, Archetype: arch, Profile: Profiles[arch]}
-			grid := qualify(cars, c.Profile, NewRNG(seed))
-			res := runRace(cars, c, grid, NewRNG(seed+7777))
-			for _, r := range res.Cars {
-				if r.TeamID == grid[0] && !r.DNF && r.Finish > 1 {
+			grid := qualify(field, 0, c.Profile, NewRNG(seed))
+			res := runRace(field, 0, c, grid, NewRNG(seed+7777))
+			for _, r := range res.Entries {
+				if r.TeamID == grid[0].teamID && r.Entry == grid[0].entry && !r.DNF && r.Finish > 1 {
 					n++
 				}
 			}
@@ -151,14 +205,30 @@ func TestOvertakingIsHarderAtTechnicalCircuits(t *testing.T) {
 	}
 }
 
+// Racecraft buys back a share of the grid penalty, so a driver who can
+// overtake should recover from the back more often than one who cannot.
+// This is the whole reason racecraft is a separate rating from pace.
+func TestRacecraftRecoversFromABadGrid(t *testing.T) {
+	p := Profiles["technical"]
+	slow := &entryState{driver: DriverSpec{Racecraft: 60}}
+	quick := &entryState{driver: DriverSpec{Racecraft: 97}}
+	if quick.gridPenalty(20, p) >= slow.gridPenalty(20, p) {
+		t.Errorf("racecraft 97 penalty %d not below racecraft 60 penalty %d",
+			quick.gridPenalty(20, p), slow.gridPenalty(20, p))
+	}
+	// And it is capped: nobody starts last for free.
+	if quick.gridPenalty(20, p) <= 0 {
+		t.Error("grid penalty vanished entirely; MaxGridRelief is not holding")
+	}
+}
+
 func TestSafetyCarFiresAtTheExpectedRate(t *testing.T) {
 	fired := 0
 	const n = 2000
 	for seed := int64(0); seed < n; seed++ {
-		cars := fieldOf(TeamCount)
-		c := Circuit{Name: "T", Archetype: "balanced", Profile: Profiles["balanced"]}
-		grid := qualify(cars, c.Profile, NewRNG(seed))
-		if runRace(cars, c, grid, NewRNG(seed)).SafetyCar {
+		field := fieldOf(TeamCount)
+		grid := qualify(field, 0, Profiles["balanced"], NewRNG(seed))
+		if runRace(field, 0, balanced(), grid, NewRNG(seed)).SafetyCar {
 			fired++
 		}
 	}

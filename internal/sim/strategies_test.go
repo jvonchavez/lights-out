@@ -2,25 +2,39 @@ package sim
 
 import "testing"
 
-var strategyNames = []string{"greedy", "cautious", "aerofirst", "adaptive", "first"}
-
-func TestStrategiesProduceValidPicks(t *testing.T) {
+func TestStrategiesProduceLegalDrafts(t *testing.T) {
 	season := GenerateSeason(1)
-	for _, name := range strategyNames {
+	for _, name := range StrategyNames {
 		t.Run(name, func(t *testing.T) {
 			picks := Strategy(name, season)
-			if len(picks) != WindowCount {
-				t.Fatalf("got %d picks, want %d", len(picks), WindowCount)
+			if len(picks) != RollCount {
+				t.Fatalf("got %d picks, want %d", len(picks), RollCount)
 			}
-			for w, p := range picks {
-				if p < 0 || p >= DealSize {
-					t.Errorf("window %d picked %d, outside [0,%d)", w, p, DealSize)
+			for i, p := range picks {
+				if p < 0 || p >= int(itemKindCount) {
+					t.Errorf("roll %d picked %d, outside [0,%d)", i, p, itemKindCount)
 				}
 			}
+			// Legal by construction, not by luck: every scripted line must
+			// fill exactly one car, two drivers, an engineer and a
+			// principal.
 			if _, err := RunSeason(season.Seed, picks); err != nil {
-				t.Errorf("strategy %q produced picks RunSeason rejects: %v", name, err)
+				t.Errorf("strategy %q produced a draft RunSeason rejects: %v", name, err)
 			}
 		})
+	}
+}
+
+// Legality must hold on every seed, not just a convenient one: it is the
+// last roll, where only one slot is open, that a careless scorer breaks on.
+func TestStrategiesAreLegalOnEverySeed(t *testing.T) {
+	for _, name := range StrategyNames {
+		for seed := int64(0); seed < 300; seed++ {
+			season := GenerateSeason(seed)
+			if _, err := RunSeason(seed, Strategy(name, season)); err != nil {
+				t.Fatalf("%s on seed %d: %v", name, seed, err)
+			}
+		}
 	}
 }
 
@@ -32,53 +46,75 @@ func TestUnknownStrategyReturnsNil(t *testing.T) {
 
 func TestStrategiesAreDeterministic(t *testing.T) {
 	season := GenerateSeason(99)
-	for _, name := range strategyNames {
+	for _, name := range StrategyNames {
 		a := Strategy(name, season)
 		b := Strategy(name, season)
 		for i := range a {
 			if a[i] != b[i] {
-				t.Errorf("%s is not deterministic at window %d", name, i)
+				t.Errorf("%s is not deterministic at roll %d", name, i)
 			}
 		}
 	}
 }
 
-func TestGreedyOutspendsCautious(t *testing.T) {
-	// Across many seeds, greedy must bank strictly more development.
-	greedier := 0
+func TestCarfirstTakesTheCarFirst(t *testing.T) {
 	for seed := int64(0); seed < 100; seed++ {
-		season := GenerateSeason(seed)
-		deals := DealsFor(seed)
-		g, c := 0, 0
-		for w, p := range Strategy("greedy", season) {
-			g += deals[w][p].Cost()
+		picks := Strategy("carfirst", GenerateSeason(seed))
+		if picks[0] != int(ItemCar) {
+			t.Fatalf("seed %d: carfirst opened with item %d, want the car", seed, picks[0])
 		}
-		for w, p := range Strategy("cautious", season) {
-			c += deals[w][p].Cost()
-		}
-		if g > c {
-			greedier++
-		}
-	}
-	if greedier < 95 {
-		t.Errorf("greedy outspent cautious in only %d/100 seasons", greedier)
 	}
 }
 
-func TestAerofirstBuysAero(t *testing.T) {
-	// It must take meaningfully more aero than the no-thought baseline.
-	aero, base := 0, 0
-	for seed := int64(0); seed < 100; seed++ {
+// Starpower fills both driver slots before it takes anything else, and
+// takes the better of the two drivers on offer each time.
+//
+// Note what this does NOT assert. Measured across 200 seeds, starpower ends
+// up with WORSE drivers than carfirst -- 35288 rating against 35895 --
+// because filling both driver slots from the first two rolls forfeits the
+// choice that later rolls would have offered. Grabbing the thing you want
+// first is not the same as ending up with the best of it, and that is a
+// real property of the draft rather than a bug in the strategy.
+func TestStarpowerTakesDriversFirst(t *testing.T) {
+	for seed := int64(0); seed < 200; seed++ {
 		season := GenerateSeason(seed)
-		deals := DealsFor(seed)
-		for w, p := range Strategy("aerofirst", season) {
-			aero += deals[w][p].Effect.Aero
+		picks := Strategy("starpower", season)
+		for i := 0; i < CarsPerTeam; i++ {
+			if slotFor(ItemKind(picks[i])) != SlotDriver {
+				t.Fatalf("seed %d: roll %d took a %v, want a driver", seed, i+1, slotFor(ItemKind(picks[i])))
+			}
 		}
-		for w, p := range Strategy("first", season) {
-			base += deals[w][p].Effect.Aero
+		// And it takes the better one of the pair on offer.
+		for i := 0; i < CarsPerTeam; i++ {
+			te := season.Rolls[i]
+			want := ItemDriverA
+			if te.Drivers[1].Overall() > te.Drivers[0].Overall() {
+				want = ItemDriverB
+			}
+			if ItemKind(picks[i]) != want {
+				t.Errorf("seed %d roll %d: took %v from %s, want the higher-rated driver",
+					seed, i+1, ItemKind(picks[i]), te.Label())
+			}
 		}
 	}
-	if aero <= base {
-		t.Errorf("aerofirst banked %d aero units, baseline %d", aero, base)
+}
+
+func TestCautiousBuysReliability(t *testing.T) {
+	cautious, best := 0, 0
+	for seed := int64(0); seed < 200; seed++ {
+		season := GenerateSeason(seed)
+		c, err := BuildLineup(season.Rolls, Strategy("cautious", season))
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := BuildLineup(season.Rolls, Strategy("bestavailable", season))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cautious += c.Car.Reliability
+		best += b.Car.Reliability
+	}
+	if cautious <= best {
+		t.Errorf("cautious drafted %d reliability, bestavailable %d", cautious, best)
 	}
 }

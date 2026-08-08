@@ -19,7 +19,7 @@ import (
 	"github.com/jvonmikael/lights-out/internal/sim"
 )
 
-var strategies = []string{"greedy", "cautious", "aerofirst", "adaptive", "first"}
+var strategies = sim.StrategyNames
 
 type row struct {
 	seed     int64
@@ -29,7 +29,7 @@ type row struct {
 	wins     int
 	podiums  int
 	dnfs     int
-	spend    int // total development units banked, for risk calibration
+	carOV    int // the drafted car's Overall, for reading what a line actually built
 }
 
 func main() {
@@ -56,15 +56,11 @@ func main() {
 					if err != nil {
 						return fmt.Errorf("seed %d strategy %s: %w", seed, name, err)
 					}
-					spend := 0
-					for _, c := range res.Build {
-						spend += c.Cost()
-					}
 					results <- row{
 						seed: seed, strategy: name,
 						points: res.Player.Points, position: res.PlayerPos,
 						wins: res.Player.Wins, podiums: res.Player.Podiums,
-						dnfs: res.Player.DNFs, spend: spend,
+						dnfs: res.Player.DNFs, carOV: res.Lineup.Car.Overall(),
 					}
 				}
 			}
@@ -104,13 +100,13 @@ func main() {
 	}
 	defer f.Close()
 	cw := csv.NewWriter(f)
-	cw.Write([]string{"seed", "strategy", "points", "position", "wins", "podiums", "dnfs", "spend"})
+	cw.Write([]string{"seed", "strategy", "points", "position", "wins", "podiums", "dnfs", "car_overall"})
 	for _, r := range rows {
 		cw.Write([]string{
 			strconv.FormatInt(r.seed, 10), r.strategy,
 			strconv.Itoa(r.points), strconv.Itoa(r.position),
 			strconv.Itoa(r.wins), strconv.Itoa(r.podiums), strconv.Itoa(r.dnfs),
-			strconv.Itoa(r.spend),
+			strconv.Itoa(r.carOV),
 		})
 	}
 	cw.Flush()
@@ -123,7 +119,7 @@ func main() {
 // player finished P1 in the standings.
 func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 	type agg struct {
-		seasons, titles, points, positions, wins, podiums, dnfs, spend int
+		seasons, titles, points, positions, wins, podiums, dnfs, carOV int
 	}
 	byStrategy := map[string]*agg{}
 	for _, r := range rows {
@@ -141,7 +137,7 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 		a.wins += r.wins
 		a.podiums += r.podiums
 		a.dnfs += r.dnfs
-		a.spend += r.spend
+		a.carOV += r.carOV
 	}
 
 	names := make([]string, 0, len(byStrategy))
@@ -170,7 +166,7 @@ func summarise(rows []row, n int, elapsed time.Duration, workers int) {
 			float64(a.positions)/float64(a.seasons),
 			float64(a.wins)/float64(a.seasons),
 			float64(a.dnfs)/float64(a.seasons),
-			float64(a.spend)/float64(a.seasons))
+			float64(a.carOV)/float64(a.seasons))
 	}
 
 	fmt.Printf("\nM1 GATE: best strategy is %q at %.1f%% titles (target: at most ~35%%) -- %s\n",

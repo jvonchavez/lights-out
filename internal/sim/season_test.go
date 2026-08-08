@@ -17,14 +17,8 @@ func TestGenerateSeasonShape(t *testing.T) {
 	if len(s.Calendar) != RaceCount {
 		t.Errorf("calendar has %d races, want %d", len(s.Calendar), RaceCount)
 	}
-	if len(s.Teams) != TeamCount {
-		t.Errorf("field has %d teams, want %d", len(s.Teams), TeamCount)
-	}
-	if len(s.Budgets) != RaceCount {
-		t.Errorf("budgets has %d entries, want %d", len(s.Budgets), RaceCount)
-	}
-	if s.Teams[0].ID != 0 || s.Teams[0].Archetype != "" {
-		t.Error("team 0 must be the player, with no AI archetype")
+	if len(s.Rivals) != TeamCount-1 {
+		t.Errorf("field has %d rivals, want %d", len(s.Rivals), TeamCount-1)
 	}
 	if s.SimVersion != Version {
 		t.Errorf("sim version = %q, want %q", s.SimVersion, Version)
@@ -42,17 +36,33 @@ func TestGenerateSeasonShape(t *testing.T) {
 	}
 }
 
-func TestEveryTeamHasAnID(t *testing.T) {
+// The rival field is a constant now, not a draw. Every player on every seed
+// races the same 2026 grid, which is what makes the leaderboard a measure
+// of the draft alone -- and it is worth pinning, because a stray rng call
+// in GenerateSeason would silently make some days easier than others.
+func TestRivalFieldIsIdenticalOnEverySeed(t *testing.T) {
+	want := GenerateSeason(1).Rivals
+	for seed := int64(2); seed < 200; seed++ {
+		if got := GenerateSeason(seed).Rivals; !reflect.DeepEqual(got, want) {
+			t.Fatalf("seed %d faces a different field from seed 1", seed)
+		}
+	}
+}
+
+func TestRivalsAreTheCurrentGrid(t *testing.T) {
 	s := GenerateSeason(5)
-	for i, tm := range s.Teams {
-		if tm.ID != i {
-			t.Errorf("team at index %d has ID %d", i, tm.ID)
+	if len(s.Rivals) != len(Grid2026) {
+		t.Fatalf("%d rivals, but the grid has %d teams", len(s.Rivals), len(Grid2026))
+	}
+	for i, tm := range s.Rivals {
+		if tm.ID != i+1 {
+			t.Errorf("rival at index %d has ID %d, want %d", i, tm.ID, i+1)
 		}
-		if tm.Name == "" {
-			t.Errorf("team %d has no name", i)
+		if tm.Name != Grid2026[i].Team {
+			t.Errorf("rival %d is %q, want %q", i, tm.Name, Grid2026[i].Team)
 		}
-		if i > 0 && tm.Archetype == "" {
-			t.Errorf("rival %d has no archetype", i)
+		if tm.Lineup.Car.ID != Grid2026[i].Car.ID {
+			t.Errorf("%s is not driving its own car", tm.Name)
 		}
 	}
 }

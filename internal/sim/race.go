@@ -8,55 +8,59 @@ import (
 // runRace resolves one round in three phases, in a fixed draw order that
 // must never change without bumping Version:
 //
-//  1. Reliability -- one Chance per car in team ID order. A failure is a
-//     DNF and the car scores nothing. This happens FIRST so the rest of the
+//  1. Reliability -- one draw per CAR in field order. A failure is a DNF
+//     and the car scores nothing. This happens FIRST so the rest of the
 //     race only simulates survivors.
-//  2. Race pace -- one perf roll per SURVIVING car in team ID order, at a
+//  2. Race pace -- one perf roll per SURVIVING car in field order, at a
 //     lower sigma than qualifying because a race averages 50+ laps and
 //     regresses toward true pace. Combined with grid position via the
-//     circuit's overtaking difficulty.
+//     circuit's overtaking difficulty and the driver's racecraft.
 //  3. Events -- one safety car draw; if it fires, one shuffle pass that
 //     compresses the field.
-func runRace(cars []*carState, c Circuit, grid []int, r *RNG) RaceResult {
-	gridPos := make(map[int]int, len(grid))
-	for i, id := range grid {
-		gridPos[id] = i + 1 // 1-based
+//
+// The field is 24 cars, two per team, and the top ten of those 24 score.
+// Both of a team's cars feed the same constructors' total, which is what
+// makes the second driver a real decision rather than a passenger.
+func runRace(field []*entryState, round int, c Circuit, grid []gridKey, r *RNG) RaceResult {
+	gridPos := make(map[gridKey]int, len(grid))
+	for i, k := range grid {
+		gridPos[k] = i + 1 // 1-based
 	}
 
-	// Phase 1: reliability, in team ID order.
-	dnf := make(map[int]bool, len(cars))
-	for _, car := range cars {
-		if r.Chance(car.failureChance()) {
-			dnf[car.team.ID] = true
-		}
+	// Phase 1: reliability, in field order, one draw each.
+	type outcome struct {
+		dnf    bool
+		reason string
+	}
+	fate := make(map[gridKey]outcome, len(field))
+	for _, e := range field {
+		dnf, reason := e.failure(r)
+		fate[gridKey{e.teamID, e.entry}] = outcome{dnf, reason}
 	}
 
-	// Phase 2: race pace for survivors, in team ID order.
-	type entry struct {
-		teamID int
-		score  Milli
+	// Phase 2: race pace for survivors, in field order.
+	type row struct {
+		key   gridKey
+		score Milli
 	}
-	var running []entry
-	for _, car := range cars {
-		if dnf[car.team.ID] {
+	var running []row
+	for _, e := range field {
+		k := gridKey{e.teamID, e.entry}
+		if fate[k].dnf {
 			continue
 		}
-		pace := car.perf(c.Profile, RaceSigma, r)
-		// A bad grid slot costs more where overtaking is hard. At a power
-		// circuit a fast car recovers; at a technical one it stays stuck.
-		//
-		// FromInt, not Milli: grid position is a plain count and must be
-		// SCALED to fixed-point before multiplying. Milli() would treat 10
-		// as 0.01 and make the penalty vanish against the noise.
-		penalty := FromInt(gridPos[car.team.ID] - 1).Mul(c.Profile.OvertakeDifficulty)
-		running = append(running, entry{teamID: car.team.ID, score: pace - penalty})
+		pace := e.perf(round, c.Profile, false, r)
+		running = append(running, row{k, pace - e.gridPenalty(gridPos[k], c.Profile)})
 	}
 
-	slices.SortFunc(running, func(a, b entry) int {
+	slices.SortFunc(running, func(a, b row) int {
 		if a.score != b.score {
 			return cmp.Compare(b.score, a.score)
 		}
-		return cmp.Compare(a.teamID, b.teamID)
+		if a.key.teamID != b.key.teamID {
+			return cmp.Compare(a.key.teamID, b.key.teamID)
+		}
+		return cmp.Compare(a.key.entry, b.key.entry)
 	})
 
 	// Phase 3: the safety car compresses the field, partially randomising
@@ -71,27 +75,38 @@ func runRace(cars []*carState, c Circuit, grid []int, r *RNG) RaceResult {
 		}
 	}
 
-	results := make([]CarResult, 0, len(cars))
-	finish := make(map[int]int, len(running))
-	points := make(map[int]int, len(running))
-	for i, e := range running {
-		finish[e.teamID] = i + 1
+	finish := make(map[gridKey]int, len(running))
+	points := make(map[gridKey]int, len(running))
+	for i, row := range running {
+		finish[row.key] = i + 1
 		if i < len(PointsTable) {
-			points[e.teamID] = PointsTable[i]
+			points[row.key] = PointsTable[i]
 		}
 	}
-	for _, car := range cars {
-		id := car.team.ID
-		results = append(results, CarResult{
-			TeamID: id,
-			Grid:   gridPos[id],
-			Finish: finish[id], // zero value 0 means DNF
-			DNF:    dnf[id],
-			Points: points[id],
+
+	entries := make([]EntryResult, 0, len(field))
+	for _, e := range field {
+		k := gridKey{e.teamID, e.entry}
+		entries = append(entries, EntryResult{
+			TeamID:    e.teamID,
+			Entry:     e.entry,
+			DriverID:  e.driver.ID,
+			Driver:    e.driver.Name,
+			Grid:      gridPos[k],
+			Finish:    finish[k], // zero value 0 means DNF
+			DNF:       fate[k].dnf,
+			DNFReason: fate[k].reason,
+			Points:    points[k],
 		})
 	}
-	// Always sorted by team ID so the JSON is stable regardless of outcome.
-	slices.SortFunc(results, func(a, b CarResult) int { return cmp.Compare(a.TeamID, b.TeamID) })
+	// Always sorted by team then entry so the JSON is stable regardless of
+	// outcome.
+	slices.SortFunc(entries, func(a, b EntryResult) int {
+		if a.TeamID != b.TeamID {
+			return cmp.Compare(a.TeamID, b.TeamID)
+		}
+		return cmp.Compare(a.Entry, b.Entry)
+	})
 
-	return RaceResult{Circuit: c.Name, SafetyCar: safetyCar, Cars: results}
+	return RaceResult{Circuit: c.Name, SafetyCar: safetyCar, Entries: entries}
 }

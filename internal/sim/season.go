@@ -1,9 +1,16 @@
 package sim
 
 // GenerateSeason derives an entire season descriptor from a seed. It is a
-// pure function: the same seed always yields the same calendar, field, and
-// budgets, which is what lets every player in the world face an identical
-// season and makes the leaderboard a measure of decisions alone.
+// pure function: the same seed always yields the same calendar and the same
+// five rolls, which is what lets every player in the world face an
+// identical season and makes the leaderboard a measure of decisions alone.
+//
+// It no longer draws any ratings. The field is Grid2026 -- the real eleven
+// teams, identical on every seed -- so the benchmark is constant and no
+// seed is easier than another. The old model drew eleven procedural teams
+// from a distribution and had to draw the player from the same one to give
+// them a ceiling (an M1 finding); with a fixed field and a drafted player,
+// that asymmetry cannot arise.
 func GenerateSeason(seed int64) Season {
 	rng := NewRNG(seed)
 
@@ -20,54 +27,31 @@ func GenerateSeason(seed int64) Season {
 		calendar[i], calendar[j] = calendar[j], calendar[i]
 	}
 
-	// The player is drawn from the SAME distribution as the rivals, in team
-	// ID order. This is a balance finding from M1, not an aesthetic choice:
-	// a player pinned to the exact mean has a good average and no ceiling,
-	// because winning a championship means being at the top of the field
-	// and a car with zero variance never gets there. Measured at 100.5
-	// average points but only 1.5% of titles, against a rival on the same
-	// strategy scoring 102.9 for 11.2%.
-	//
-	// Fairness is preserved because the draw is seeded: every player in the
-	// world gets the same car on the same day. Some days it is a good one.
-	teams := make([]Team, 0, TeamCount)
-	teams = append(teams, Team{
-		ID:        0,
-		Name:      "Your Team",
-		Archetype: "",
-		Start: Ratings{
-			Chassis: StartRating + rng.Normal(StartSpread),
-			Engine:  StartRating + rng.Normal(StartSpread),
-			Aero:    StartRating + rng.Normal(StartSpread),
-		},
-		DriverSkill: 2*One + rng.Normal(One),
-	})
-	for i, name := range rivalNames {
-		teams = append(teams, Team{
-			ID:        i + 1,
-			Name:      name,
-			Archetype: rivalArchetypes[i%len(rivalArchetypes)],
-			Start: Ratings{
-				Chassis: StartRating + rng.Normal(StartSpread),
-				Engine:  StartRating + rng.Normal(StartSpread),
-				Aero:    StartRating + rng.Normal(StartSpread),
-			},
-			DriverSkill: 2*One + rng.Normal(One),
-		})
-	}
-
-	// A slice rather than a constant so M1 can try a front-loaded or
-	// back-loaded budget curve without changing any type.
-	budgets := make([]int, RaceCount)
-	for i := range budgets {
-		budgets[i] = RaceBudget
-	}
-
 	return Season{
 		Seed:       seed,
 		SimVersion: Version,
 		Calendar:   calendar,
-		Teams:      teams,
-		Budgets:    budgets,
+		Rolls:      RollsFor(seed),
+		Rivals:     rivalTeams(),
 	}
+}
+
+// rivalTeams is the 2026 grid as entrants, at team IDs 1..TeamCount-1 in
+// Grid2026 order. It takes no seed because it does not vary.
+func rivalTeams() []Team {
+	teams := make([]Team, 0, TeamCount-1)
+	for i, te := range Grid2026 {
+		teams = append(teams, Team{
+			ID:     i + 1,
+			Name:   te.Team,
+			Livery: te.Livery,
+			Lineup: Lineup{
+				Car:       te.Car,
+				Drivers:   te.Drivers,
+				Engineer:  te.Engineer,
+				Principal: te.Principal,
+			},
+		})
+	}
+	return teams
 }

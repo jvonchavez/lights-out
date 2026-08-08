@@ -72,7 +72,7 @@ func testSeason(t *testing.T, s *Store, seed int64, day time.Time) int64 {
 	t.Helper()
 	season := sim.GenerateSeason(seed)
 	cal, _ := json.Marshal(season.Calendar)
-	field, _ := json.Marshal(season.Teams)
+	field, _ := json.Marshal(season.Rivals)
 	row, err := s.CreateSeason(context.Background(), CreateSeasonParams{
 		Seed:       seed,
 		SimVersion: sim.Version,
@@ -143,7 +143,7 @@ func TestSeasonPublishedAtIsUnique(t *testing.T) {
 	// scheduler safe to run on several instances with no leader election.
 	season := sim.GenerateSeason(2)
 	cal, _ := json.Marshal(season.Calendar)
-	field, _ := json.Marshal(season.Teams)
+	field, _ := json.Marshal(season.Rivals)
 	_, err := s.CreateSeason(ctx, CreateSeasonParams{
 		Seed: 2, SimVersion: sim.Version, Calendar: cal, Field: field,
 		Day: day, ClosesAt: day.Add(24 * time.Hour),

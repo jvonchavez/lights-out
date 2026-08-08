@@ -95,21 +95,19 @@ func (e *testEnv) do(method, path, body string) *httptest.ResponseRecorder {
 	return rec
 }
 
-// middlePicksJSON is a legal pick for every window.
-func middlePicksJSON() string {
-	parts := make([]string, sim.WindowCount)
-	for i := range parts {
-		parts[i] = "1"
-	}
-	return "[" + strings.Join(parts, ",") + "]"
+// legalPicks is a complete, valid draft: car, both drivers, engineer,
+// principal, one item taken per roll.
+func legalPicks() []int {
+	return []int{int(sim.ItemCar), int(sim.ItemDriverA), int(sim.ItemDriverB),
+		int(sim.ItemEngineer), int(sim.ItemPrincipal)}
 }
 
-func middlePicks() []int {
-	p := make([]int, sim.WindowCount)
-	for i := range p {
-		p[i] = 1
+func legalPicksJSON() string {
+	parts := make([]string, 0, sim.RollCount)
+	for _, p := range legalPicks() {
+		parts = append(parts, strconv.Itoa(p))
 	}
-	return p
+	return "[" + strings.Join(parts, ",") + "]"
 }
 
 // TestForgedScoreIsIgnored is the M3 definition of done.
@@ -134,7 +132,7 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 		"result": {"player": {"points": 999999, "wins": 10}},
 		"build": [{"name": "Fabricated Part"}],
 		"picks": %s
-	}`, env.seasonID, uuid.NewString(), middlePicksJSON())
+	}`, env.seasonID, uuid.NewString(), legalPicksJSON())
 
 	rec := env.do("POST", "/api/runs", body)
 	if rec.Code != http.StatusCreated {
@@ -146,7 +144,7 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want, err := sim.RunSeason(env.seed, middlePicks())
+	want, err := sim.RunSeason(env.seed, legalPicks())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,9 +183,9 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 func TestSubmissionValidation(t *testing.T) {
 	env := newTestEnv(t)
 
-	shortPicks := make([]string, sim.WindowCount-1)
+	shortPicks := make([]string, sim.RollCount-1)
 	for i := range shortPicks {
-		shortPicks[i] = "1"
+		shortPicks[i] = "0"
 	}
 
 	tests := []struct {
@@ -197,15 +195,23 @@ func TestSubmissionValidation(t *testing.T) {
 	}{
 		{"malformed json", `{`, http.StatusBadRequest},
 		{"bad player id", fmt.Sprintf(`{"season_id":%d,"player_id":"not-a-uuid","picks":%s}`,
-			env.seasonID, middlePicksJSON()), http.StatusBadRequest},
+			env.seasonID, legalPicksJSON()), http.StatusBadRequest},
 		{"too few picks", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[%s]}`,
 			env.seasonID, uuid.NewString(), strings.Join(shortPicks, ",")), http.StatusBadRequest},
-		{"negative card index", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[-1,1,1,1,1]}`,
+		{"negative item index", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[-1,1,2,3,4]}`,
 			env.seasonID, uuid.NewString()), http.StatusBadRequest},
-		{"card index past the deal", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[0,0,9,0,0]}`,
+		{"item index past the roll", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[0,1,9,3,4]}`,
+			env.seasonID, uuid.NewString()), http.StatusBadRequest},
+		// Slot legality, which the old card draft could not express: every
+		// index below is in range and the draft is still not a team.
+		{"three drivers and no car", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[1,2,1,3,4]}`,
+			env.seasonID, uuid.NewString()), http.StatusBadRequest},
+		{"five cars", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[0,0,0,0,0]}`,
+			env.seasonID, uuid.NewString()), http.StatusBadRequest},
+		{"no principal", fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":[0,1,2,3,3]}`,
 			env.seasonID, uuid.NewString()), http.StatusBadRequest},
 		{"unknown season", fmt.Sprintf(`{"season_id":999999,"player_id":%q,"picks":%s}`,
-			uuid.NewString(), middlePicksJSON()), http.StatusNotFound},
+			uuid.NewString(), legalPicksJSON()), http.StatusNotFound},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -221,7 +227,7 @@ func TestOneSubmissionPerPlayerPerSeason(t *testing.T) {
 	env := newTestEnv(t)
 	player := uuid.NewString()
 	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"display_name":"alice","picks":%s}`,
-		env.seasonID, player, middlePicksJSON())
+		env.seasonID, player, legalPicksJSON())
 
 	if rec := env.do("POST", "/api/runs", body); rec.Code != http.StatusCreated {
 		t.Fatalf("first submission: %d %s", rec.Code, rec.Body.String())
@@ -238,7 +244,7 @@ func TestClosedSeasonRejectsSubmission(t *testing.T) {
 	env.srv.now = func() time.Time { return time.Now().UTC().Add(48 * time.Hour) }
 
 	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
-		env.seasonID, uuid.NewString(), middlePicksJSON())
+		env.seasonID, uuid.NewString(), legalPicksJSON())
 	rec := env.do("POST", "/api/runs", body)
 	if rec.Code != http.StatusConflict {
 		t.Errorf("status %d, want 409 for a closed season: %s", rec.Code, rec.Body.String())
@@ -252,7 +258,7 @@ func TestRateLimitOnSubmission(t *testing.T) {
 	codes := make([]int, 0, 4)
 	for i := 0; i < 4; i++ {
 		body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
-			env.seasonID, uuid.NewString(), middlePicksJSON())
+			env.seasonID, uuid.NewString(), legalPicksJSON())
 		codes = append(codes, env.do("POST", "/api/runs", body).Code)
 	}
 	if codes[0] != http.StatusCreated || codes[1] != http.StatusCreated {
@@ -288,15 +294,17 @@ func TestTodaySeasonEndpoint(t *testing.T) {
 	if got.SimVersion != sim.Version {
 		t.Errorf("sim version = %q, want %q", got.SimVersion, sim.Version)
 	}
-	for w, deal := range got.Deals {
-		for i, c := range deal {
-			if c.ID == "" || c.Name == "" {
-				t.Errorf("window %d card %d came back empty", w, i)
-			}
-		}
+	// The rolls must come back fully populated: the client renders the
+	// draft from these before the WASM module has finished loading.
+	if got.Rolls != sim.RollsFor(env.seed) {
+		t.Error("rolls differ from RollsFor(seed) -- the server is not the authority on what was offered")
 	}
-	if got.WindowRounds != sim.WindowRounds {
-		t.Errorf("window rounds = %v, want %v", got.WindowRounds, sim.WindowRounds)
+	for i, te := range got.Rolls {
+		if te.ID == "" || te.Team == "" || te.Car.Name == "" ||
+			te.Engineer.Name == "" || te.Principal.Name == "" ||
+			te.Drivers[0].Name == "" || te.Drivers[1].Name == "" {
+			t.Errorf("roll %d came back incomplete: %+v", i+1, te)
+		}
 	}
 }
 
@@ -304,7 +312,7 @@ func TestLeaderboardEndpoint(t *testing.T) {
 	env := newTestEnv(t)
 	for i := 0; i < 3; i++ {
 		body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"display_name":"p%d","picks":%s}`,
-			env.seasonID, uuid.NewString(), i, middlePicksJSON())
+			env.seasonID, uuid.NewString(), i, legalPicksJSON())
 		if rec := env.do("POST", "/api/runs", body); rec.Code != http.StatusCreated {
 			t.Fatalf("submission %d: %d", i, rec.Code)
 		}
@@ -348,7 +356,7 @@ func TestHealthzAndMetrics(t *testing.T) {
 	}
 
 	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
-		env.seasonID, uuid.NewString(), middlePicksJSON())
+		env.seasonID, uuid.NewString(), legalPicksJSON())
 	env.do("POST", "/api/runs", body)
 
 	rec := env.do("GET", "/metrics", "")
@@ -443,7 +451,7 @@ func TestSeasonFromAnotherRulesetIsRejected(t *testing.T) {
 	}
 
 	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
-		stale.ID, uuid.NewString(), middlePicksJSON())
+		stale.ID, uuid.NewString(), legalPicksJSON())
 	rec := env.do("POST", "/api/runs", body)
 	if rec.Code != http.StatusConflict {
 		t.Errorf("status %d, want 409 for a season from another ruleset: %s", rec.Code, rec.Body.String())

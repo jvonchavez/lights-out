@@ -44,42 +44,58 @@ func main() {
 
 	fmt.Printf("Seed %d · sim %s · strategy %s\n\n", *seed, res.SimVersion, *strategy)
 
-	fmt.Printf("%-4s %-24s %-22s %6s\n", "WIN", "PART", "EFFECT", "COST")
-	fmt.Println(strings.Repeat("-", 60))
-	for i, c := range res.Build {
-		eff := ""
-		if c.Effect.Chassis > 0 {
-			eff += fmt.Sprintf("+%d cha ", c.Effect.Chassis/10)
+	fmt.Printf("%-10s %-30s %-24s %4s\n", "SLOT", "TAKEN", "FROM", "OVR")
+	fmt.Println(strings.Repeat("-", 72))
+	rolls := res.Rolls
+	for i, p := range res.Picks {
+		te := rolls[i]
+		var slot, name string
+		var ovr int
+		switch sim.ItemKind(p) {
+		case sim.ItemCar:
+			slot, name, ovr = "CAR", te.Car.Name, te.Car.Overall()
+		case sim.ItemDriverA:
+			slot, name, ovr = "DRIVER", te.Drivers[0].Name, te.Drivers[0].Overall()
+		case sim.ItemDriverB:
+			slot, name, ovr = "DRIVER", te.Drivers[1].Name, te.Drivers[1].Overall()
+		case sim.ItemEngineer:
+			slot, name, ovr = "ENGINEER", te.Engineer.Name, te.Engineer.Overall()
+		case sim.ItemPrincipal:
+			slot, name, ovr = "PRINCIPAL", te.Principal.Name, te.Principal.Overall()
 		}
-		if c.Effect.Engine > 0 {
-			eff += fmt.Sprintf("+%d eng ", c.Effect.Engine/10)
-		}
-		if c.Effect.Aero > 0 {
-			eff += fmt.Sprintf("+%d aer", c.Effect.Aero/10)
-		}
-		fmt.Printf("%-4d %-24s %-22s %6d\n", i+1, c.Name, eff, c.Cost())
+		fmt.Printf("%-10s %-30s %-24s %4d\n", slot, name, te.Label(), ovr)
 	}
 	fmt.Println()
 
-	fmt.Printf("%-4s %-18s %-11s %5s %5s %6s\n", "RD", "CIRCUIT", "TYPE", "GRID", "FIN", "PTS")
+	fmt.Printf("%-4s %-18s %-11s %5s %8s %6s\n", "RD", "CIRCUIT", "TYPE", "GRID", "FIN", "PTS")
 	fmt.Println(strings.Repeat("-", 56))
 	for i, r := range res.Races {
-		var player sim.CarResult
-		for _, c := range r.Cars {
+		var mine []sim.EntryResult
+		for _, c := range r.Entries {
 			if c.TeamID == 0 {
-				player = c
+				mine = append(mine, c)
 			}
 		}
-		fin := fmt.Sprintf("P%d", player.Finish)
-		if player.DNF {
-			fin = "DNF"
+		player := mine[0]
+		fin := ""
+		pts := 0
+		for _, c := range mine {
+			if fin != "" {
+				fin += "/"
+			}
+			if c.DNF {
+				fin += "DNF"
+			} else {
+				fin += fmt.Sprintf("P%d", c.Finish)
+			}
+			pts += c.Points
 		}
 		sc := ""
 		if r.SafetyCar {
 			sc = " (SC)"
 		}
-		fmt.Printf("%-4d %-18s %-11s %5d %5s %6d%s\n",
-			r.Round, r.Circuit, season.Calendar[i].Archetype, player.Grid, fin, player.Points, sc)
+		fmt.Printf("%-4d %-18s %-11s %5d %8s %6d%s\n",
+			r.Round, r.Circuit, season.Calendar[i].Archetype, player.Grid, fin, pts, sc)
 	}
 
 	fmt.Printf("\n%-4s %-22s %6s %5s %8s %5s\n", "POS", "TEAM", "PTS", "WINS", "PODIUMS", "DNF")

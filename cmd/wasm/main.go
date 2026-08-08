@@ -27,12 +27,6 @@ func runSeason(this js.Value, args []js.Value) any {
 	return run(args, sim.RunSeason, "runSeason expects (seedString, picksJSON)")
 }
 
-// runPartial(seedString, picksJSON) -> resultJSON for a prefix of picks, so
-// the client can show the races a window caused before dealing the next.
-func runPartial(this js.Value, args []js.Value) any {
-	return run(args, sim.RunPartial, "runPartial expects (seedString, picksJSON)")
-}
-
 func run(args []js.Value, fn func(int64, []int) (sim.SeasonResult, error), usage string) any {
 	if len(args) != 2 {
 		return errJSON(usage)
@@ -56,17 +50,19 @@ func run(args []js.Value, fn func(int64, []int) (sim.SeasonResult, error), usage
 	return string(out)
 }
 
-// dealsFor(seedString) -> dealsJSON, so the client can render cards from
-// the same source the server verifies against.
-func dealsFor(this js.Value, args []js.Value) any {
+// rollsFor(seedString) -> rollsJSON, so the client can render the five
+// team-eras it will be offered from the same source the server verifies
+// against. A pick is an index into one of these, so a client cannot
+// describe an item it was never shown.
+func rollsFor(this js.Value, args []js.Value) any {
 	if len(args) != 1 {
-		return errJSON("dealsFor expects (seedString)")
+		return errJSON("rollsFor expects (seedString)")
 	}
 	seed, err := strconv.ParseInt(args[0].String(), 10, 64)
 	if err != nil {
 		return errJSON("bad seed: " + err.Error())
 	}
-	out, err := json.Marshal(sim.DealsFor(seed))
+	out, err := json.Marshal(sim.RollsFor(seed))
 	if err != nil {
 		return errJSON(err.Error())
 	}
@@ -92,8 +88,7 @@ func generateSeason(this js.Value, args []js.Value) any {
 
 func main() {
 	js.Global().Set("lightsOutRunSeason", js.FuncOf(runSeason))
-	js.Global().Set("lightsOutRunPartial", js.FuncOf(runPartial))
-	js.Global().Set("lightsOutDealsFor", js.FuncOf(dealsFor))
+	js.Global().Set("lightsOutRollsFor", js.FuncOf(rollsFor))
 	js.Global().Set("lightsOutGenerateSeason", js.FuncOf(generateSeason))
 	js.Global().Set("lightsOutVersion", sim.Version)
 	js.Global().Set("lightsOutReady", true)

@@ -19,11 +19,11 @@ var goldenCases = []struct {
 	seed  int64
 	picks []int
 }{
-	{"seed-1001-middle", 1001, []int{1, 1, 1, 1, 1}},
-	{"seed-2002-first", 2002, []int{0, 0, 0, 0, 0}},
-	{"seed-3003-last", 3003, []int{2, 2, 2, 2, 2}},
-	{"seed-4004-mixed", 4004, []int{0, 2, 1, 2, 0}},
-	{"seed-5005-greedy", 5005, Strategy("greedy", GenerateSeason(5005))},
+	{"seed-1001-inorder", 1001, []int{0, 1, 2, 3, 4}},
+	{"seed-2002-reversed", 2002, []int{4, 3, 2, 1, 0}},
+	{"seed-3003-drivers-last", 3003, []int{0, 3, 4, 1, 2}},
+	{"seed-4004-car-late", 4004, []int{1, 4, 2, 3, 0}},
+	{"seed-5005-bestavailable", 5005, Strategy("bestavailable", GenerateSeason(5005))},
 }
 
 func TestGolden(t *testing.T) {

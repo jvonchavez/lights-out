@@ -1,86 +1,95 @@
 package sim
 
-// Every balance constant in the game lives in this file. M1 tunes these and
-// nothing else; docs/Build Plan.md gates M1 on choosing the sigma values
-// from 100k simulated seasons rather than guessing them.
+// Every balance constant in the game lives in this file.
+//
+// SCALE. Roster ratings are 0-99 plain integers and map into the Milli
+// fixed-point space with FromInt, so a 95-rated car corner-weights at 95.0.
+// The circuit profile weights sum to One, so a car's weighted performance
+// lands in roughly the 55..97 band -- the same order of magnitude the
+// sigma values below were tuned against under the old rating model.
+//
+// RESCALING RULE. Ratings are plain counts, not Milli. Multiplying a rating
+// by a per-point rate is plain integer multiplication with NO /One; only
+// multiplying two Milli values uses .Mul. The two cases look alike and
+// confusing them silently scales the whole game wrong.
 const (
-	RaceCount  = 10
-	TeamCount  = 11  // the player plus 10 rivals
-	RaceBudget = 100 // budget units available each race
+	RaceCount   = 10
+	TeamCount   = 12 // the player plus the eleven-team 2026 grid
+	CarsPerTeam = 2
+	FieldSize   = TeamCount * CarsPerTeam // 24 cars
 
-	// Development happens in five windows rather than every race. Each
-	// window deals DealSize cards and the player takes one, so a season is
-	// five clicks. Card costs average ~200 units, keeping a season near the
-	// 1000 units PressureQuad is calibrated against.
-	WindowCount = 5
-	DealSize    = 3
+	// RollCount is the whole input surface: five rolls, five slots, one
+	// item taken per roll and no passing. It is a constant here rather
+	// than a literal so cmd/balance can sweep it.
+	RollCount = 5
 
-	MinCardCost = 140
-	MaxCardCost = 260
-
-	StartRating = 50 * One // every team starts at 50.0 in each area
-	StartSpread = 4 * One  // rivals vary around it by this sigma
-
-	// GainPerUnit is the rating bought by one budget unit. Spends are plain
-	// counts, so this multiplies directly with no rescale: 100 units buys
-	// 100 * 100 = 10000 millis, a full +10.0.
-	GainPerUnit = Milli(100)
-
-	QualiSigma = Milli(2500) // 2.5 rating points -- M1 GATE
+	QualiSigma = Milli(2500) // 2.5 rating points
 	RaceSigma  = Milli(1500) // lower: a race averages 50+ laps and regresses
 
-	BaseFailure = Milli(30) // 3.0% before any development
+	// Driver pace is measured from a baseline rather than absolutely, so
+	// the numbers below read as "rating points above a backmarker". The
+	// spread across the roster is about 8 rating points per driver and so
+	// about 16 across a two-car team -- deliberately smaller than the ~36
+	// points separating the best car from the worst, because in Formula 1
+	// the car dominates, and a draft where the car did not would be a lie.
+	PaceBaseline = 60
+	PaceRate     = 250
 
-	// PressureQuad is the failure probability added at FULL season spend.
-	// Risk grows with the SQUARE of cumulative development, not linearly.
-	//
-	// This is an M1 finding, not a preference. Under the linear model the
-	// design document specifies, risk and performance are both linear in
-	// spend, so one always dominates globally and there is no interior
-	// optimum: measured across pressure coefficients from 250 to 850,
-	// spending 100% of the budget was optimal every time, even at 4.19
-	// DNFs per 10-race season. A convex cost is what makes "how much
-	// performance will you buy with how much risk" a real question.
-	PressureQuad   = Milli(280)
-	AeroEfficiency = Milli(300) // aero offsets 30% of the pressure it causes
+	// Staff ratings share one baseline. Setup applies in qualifying only
+	// and Strategy in the race only, which is what makes an engineer worth
+	// more to a car that qualifies badly than to one that does not.
+	StaffBaseline  = 60
+	SetupRate      = 80
+	StrategyRate   = 110
+	LeadershipRate = 120
 
-	// Aero "scales with both" (docs/Game Design.md): rating above the
-	// baseline multiplies the whole weighted performance sum rather than
-	// only adding through its own circuit weight. AeroScale sets the rate,
-	// MaxAeroBonus caps it.
-	//
-	// The cap is what stops a pure aero car compounding without limit and
-	// simply replacing engine as the single dominant answer. Aero is worth
-	// buying up to the cap and much less past it, so the question becomes
-	// what to take with the windows that remain.
-	//
-	// Raised from 150 to 310 for the card draft. With sliders a player
-	// could pour unlimited budget into aero, so the cap had to be tight.
-	// A deal of three cards constrains that on its own, and at 150 the
-	// deepest strategy (aerofirst, 14.4% titles) barely separated from the
-	// crudest one that simply buys the most (greedy, 13.9%). At 310 the
-	// gradient reads 4.2 / 8.1 / 10.4 / 14.3 / 20.8 across the five
-	// scripted strategies, and DNF rates are untouched because this lever
-	// moves performance rather than risk.
-	AeroScale    = Milli(12)
-	MaxAeroBonus = Milli(310) // at most +31% performance
+	// Nerve applies only in the closing rounds, where a championship is
+	// actually decided.
+	NerveRate   = 100
+	NerveRounds = 3
+
+	// Development is the only thing that changes the car after lights out
+	// in round one, because everything else was locked in at the draft. A
+	// principal at DevBaseline stands still; Newey at 95 adds about four
+	// rating points by the final round, which is the difference between
+	// fourth and a win.
+	DevBaseline = 70
+	DevRate     = 18
+
+	// Consistency widens or narrows a driver's own performance sigma. A
+	// fast erratic driver and a slower metronome can carry the same
+	// Overall and play completely differently across ten races.
+	ConsistencyBaseline = 82
+	ConsistencyRate     = 20
+	MinSigmaFactor      = Milli(600)  // never less than 0.6x
+	MaxSigmaFactor      = Milli(1600) // never more than 1.6x
+
+	// Racecraft buys back a share of the grid-position penalty, capped so
+	// that no driver can start last and be unaffected by it.
+	RacecraftRate = 11
+	MaxGridRelief = Milli(500) // at most 50% of the penalty
+
+	// Failure. Two independent causes share ONE rng draw per car per race
+	// (see team.go), so the reel can name a cause for free. Both are
+	// computed at ten times scale and divided down, which keeps the slopes
+	// expressible as integers.
+	MechBase       = Milli(3780)
+	MechRelRate    = 37 // per point of car Reliability
+	MechOpsRate    = 5  // per point of engineer Ops above StaffBaseline
+	DriverErrBase  = Milli(630)
+	ComposureRate  = 15 // per point of driver Composure above StaffBaseline
+	FailureDivisor = 10
 
 	SafetyCarChance    = Milli(250) // 25% per race
 	SafetyCarThreshold = 2 * One    // cars within 2.0 pace may be shuffled
 
-	// A safety rail, not an active constraint: it sits above the failure
-	// chance a full-budget season produces (BaseFailure + PressureQuad) so
-	// that clamping never silently truncates the risk model.
+	// Safety rails, not active constraints.
 	MaxFailure = Milli(850) // never worse than 85%
 	MinFailure = Milli(5)   // never better than 0.5%
 )
 
-// WindowRounds are the 0-based rounds a development window precedes: cards
-// are dealt before races 1, 3, 5, 7 and 9, and the intervening races run on
-// whatever the car already is.
-var WindowRounds = [WindowCount]int{0, 2, 4, 6, 8}
-
-// PointsTable is the standard allocation for the top ten finishers.
+// PointsTable is the standard allocation for the top ten finishers, now
+// applied across a 24-car field rather than an 11-car one.
 var PointsTable = [10]int{25, 18, 15, 12, 10, 8, 6, 4, 2, 1}
 
 // Profiles maps circuit archetype to its weights. This is a map, which is

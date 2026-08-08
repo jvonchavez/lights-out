@@ -11,8 +11,12 @@ import (
 // strategy produced it, so sharing a result never spoils the puzzle.
 //
 //	Lights Out · Season 142
-//	P2 · 287 pts · 1 DNF
+//	P2 of 12 · 287 pts · 1 DNF
 //	🏁🥈🥇🥉🏁🥇✖️🥈🥇🥈
+//
+// With two cars per team the row reports the team's BEST result each round,
+// because the goal is the constructors' championship and that is the number
+// the round actually contributed. A cross means both cars retired.
 func shareString(seed int64, player Standing, pos int, races []RaceResult) string {
 	// A short human-readable label, not the seed itself.
 	label := seed % 1000
@@ -52,24 +56,35 @@ func shareString(seed int64, player Standing, pos int, races []RaceResult) strin
 }
 
 func raceEmoji(r RaceResult) string {
-	for _, c := range r.Cars {
+	best, retired, ran := 0, 0, 0
+	for _, c := range r.Entries {
 		if c.TeamID != 0 {
 			continue
 		}
-		switch {
-		case c.DNF:
-			return "✖️"
-		case c.Finish == 1:
-			return "🥇"
-		case c.Finish == 2:
-			return "🥈"
-		case c.Finish == 3:
-			return "🥉"
-		case c.Finish <= len(PointsTable):
-			return "🏁"
-		default:
-			return "⬜"
+		ran++
+		if c.DNF {
+			retired++
+			continue
+		}
+		if best == 0 || c.Finish < best {
+			best = c.Finish
 		}
 	}
-	return "⬜"
+	if ran > 0 && retired == ran {
+		return "✖️"
+	}
+	switch {
+	case best == 0:
+		return "⬜"
+	case best == 1:
+		return "🥇"
+	case best == 2:
+		return "🥈"
+	case best == 3:
+		return "🥉"
+	case best <= len(PointsTable):
+		return "🏁"
+	default:
+		return "⬜"
+	}
 }
