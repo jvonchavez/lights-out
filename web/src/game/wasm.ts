@@ -1,4 +1,17 @@
-import type { SeasonDescriptor, SeasonResult } from './types';
+import type { Circuit, SeasonResult, Team, TeamEra } from './types';
+
+/**
+ * What sim.GenerateSeason returns. It is NOT a SeasonDescriptor: there is no
+ * database id and no closing time, because a free-play season was never
+ * published. App builds a descriptor around it.
+ */
+export interface GeneratedSeason {
+  seed: number;
+  sim_version: string;
+  calendar: Circuit[];
+  rolls: TeamEra[];
+  rivals: Team[];
+}
 
 /** The functions the Go WASM module installs on globalThis. */
 declare global {
@@ -8,7 +21,7 @@ declare global {
       run(instance: WebAssembly.Instance): Promise<void>;
     };
     lightsOutRunSeason?: (seed: string, picksJSON: string) => string;
-    lightsOutRunPartial?: (seed: string, picksJSON: string) => string;
+    lightsOutRollsFor?: (seed: string) => string;
     lightsOutGenerateSeason?: (seed: string) => string;
     lightsOutVersion?: string;
   }
@@ -17,9 +30,9 @@ declare global {
 export interface SimAPI {
   version: string;
   runSeason(seed: string, picks: number[]): SeasonResult;
-  /** Resolves only the races a prefix of picks unlocks. */
-  runPartial(seed: string, picks: number[]): SeasonResult;
-  generateSeason(seed: string): SeasonDescriptor;
+  /** The five team-eras a seed offers, from the same source the server verifies against. */
+  rollsFor(seed: string): TeamEra[];
+  generateSeason(seed: string): GeneratedSeason;
 }
 
 let pending: Promise<SimAPI> | null = null;
@@ -33,7 +46,9 @@ let pending: Promise<SimAPI> | null = null;
  * they produce byte-identical results across 3000 seeds.
  *
  * Loaded lazily after first paint: the module is ~1.25 MB gzipped, and the
- * calendar renders from the API response without it.
+ * draft renders from the API response without it. Free play needs no
+ * backend at all -- GenerateSeason is pure, so the client rolls its own
+ * seed and simply never posts a run.
  */
 export function loadSim(): Promise<SimAPI> {
   if (pending) return pending;
@@ -56,11 +71,11 @@ export function loadSim(): Promise<SimAPI> {
       runSeason(seed, picks) {
         return unwrap<SeasonResult>(window.lightsOutRunSeason!(seed, JSON.stringify(picks)));
       },
-      runPartial(seed, picks) {
-        return unwrap<SeasonResult>(window.lightsOutRunPartial!(seed, JSON.stringify(picks)));
+      rollsFor(seed) {
+        return unwrap<TeamEra[]>(window.lightsOutRollsFor!(seed));
       },
       generateSeason(seed) {
-        return unwrap<SeasonDescriptor>(window.lightsOutGenerateSeason!(seed));
+        return unwrap<GeneratedSeason>(window.lightsOutGenerateSeason!(seed));
       },
     };
   })();

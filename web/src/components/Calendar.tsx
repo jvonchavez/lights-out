@@ -27,7 +27,9 @@ export function Calendar({
       <ol className="space-y-1">
         {calendar.map((c, i) => {
           const done = results?.[i];
-          const current = i === round && !results;
+          // The round being watched, whether or not earlier rounds have
+          // results yet -- during the reel the highlight IS the playhead.
+          const current = i === round;
           return (
             <li
               key={c.name}

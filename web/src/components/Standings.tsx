@@ -4,7 +4,7 @@ export function Standings({ standings }: { standings: Standing[] }) {
   return (
     <div className="rounded-lg border border-edge bg-panel p-4">
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">
-        Championship
+        Constructors
       </h2>
       <table className="w-full text-sm">
         <thead>

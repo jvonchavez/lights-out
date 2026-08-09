@@ -1,186 +1,274 @@
-import { describe, it, expect } from 'vitest';
-import { reducer, initialState, currentDeal, revealComplete, type GameState } from './reducer';
-import { riskPips, effectLabel, type Card, type SeasonDescriptor, type SeasonResult } from './types';
+import { describe, expect, it } from 'vitest';
+import {
+  currentRoll,
+  draftComplete,
+  filledSlots,
+  initialState,
+  reducer,
+  reelComplete,
+  standingsAfter,
+  takeable,
+  type GameState,
+} from './reducer';
+import {
+  carOverall,
+  driverOverall,
+  engineerOverall,
+  ITEM_CAR,
+  ITEM_DRIVER_A,
+  ITEM_DRIVER_B,
+  ITEM_ENGINEER,
+  ITEM_PRINCIPAL,
+  itemsOf,
+  principalOverall,
+  ROLL_COUNT,
+  type SeasonDescriptor,
+  type SeasonResult,
+  type TeamEra,
+} from './types';
 
-const card = (id: string, chassis: number, engine: number, aero: number): Card => ({
-  id,
-  name: id.toUpperCase(),
-  blurb: 'a part',
-  effect: { chassis, engine, aero },
-});
-
-const season: SeasonDescriptor = {
-  id: 1,
-  seed: '2497907803379454',
-  sim_version: '2.0.0',
-  calendar: Array.from({ length: 10 }, (_, i) => ({
-    name: `Circuit ${i + 1}`,
-    archetype: 'balanced' as const,
-    profile: { chassis: 350, engine: 350, aero: 300, overtake_difficulty: 280 },
-  })),
-  field: [],
-  deals: Array.from({ length: 5 }, (_, w) => [
-    card(`a${w}`, 250, 0, 0),
-    card(`b${w}`, 0, 250, 0),
-    card(`c${w}`, 0, 0, 250),
-  ]),
-  window_rounds: [0, 2, 4, 6, 8],
-  closes_at: '2026-09-03T00:00:00Z',
-};
-
-function loaded(): GameState {
-  return reducer(initialState, { type: 'SEASON_LOADED', season });
-}
-
-function resultWith(races: number): SeasonResult {
+function era(id: string, year = 1988): TeamEra {
+  const d = (n: string) => ({
+    id: n,
+    name: n,
+    pace: 80,
+    racecraft: 80,
+    consistency: 80,
+    composure: 80,
+  });
   return {
-    sim_version: '2.0.0',
-    seed: 1,
-    build: [],
-    races: Array.from({ length: races }, (_, i) => ({
-      round: i + 1,
-      circuit: 'x',
-      safety_car: false,
-      cars: [],
-    })),
-    standings: [],
-    player: { team_id: 0, name: 'you', points: 0, wins: 0, podiums: 0, dnfs: 0 },
-    player_position: 1,
-    share: '',
+    id,
+    team: id,
+    year,
+    era_id: '1980s',
+    livery: '#ffffff',
+    car: { id: `${id}-car`, name: `${id} car`, power: 90, cornering: 90, aero: 90, reliability: 80 },
+    drivers: [d(`${id}-a`), d(`${id}-b`)],
+    engineer: { id: `${id}-e`, name: `${id} eng`, setup: 80, strategy: 80, ops: 80 },
+    principal: { id: `${id}-p`, name: `${id} tp`, development: 80, leadership: 80, nerve: 80 },
   };
 }
 
-describe('SEASON_LOADED', () => {
-  it('opens on the first window with nothing picked', () => {
+const season: SeasonDescriptor = {
+  id: 1,
+  seed: '4242',
+  sim_version: 'test',
+  calendar: [],
+  field: [],
+  rolls: [era('a'), era('b'), era('c'), era('d'), era('e')],
+  closes_at: '',
+};
+
+function loaded(): GameState {
+  return reducer(initialState, { type: 'SEASON_LOADED', season, mode: 'daily' });
+}
+
+function resultWith(n: number): SeasonResult {
+  return {
+    sim_version: 'test',
+    seed: 1,
+    rolls: season.rolls,
+    picks: [],
+    lineup: {
+      car: season.rolls[0].car,
+      drivers: season.rolls[0].drivers,
+      engineer: season.rolls[0].engineer,
+      principal: season.rolls[0].principal,
+    },
+    races: Array.from({ length: n }, (_, i) => ({
+      round: i + 1,
+      circuit: `C${i}`,
+      safety_car: false,
+      entries: [
+        {
+          team_id: 0,
+          entry: 0,
+          driver_id: 'x',
+          driver: 'X',
+          grid: 1,
+          finish: 1,
+          dnf: false,
+          dnf_reason: '' as const,
+          points: 25,
+        },
+        {
+          team_id: 1,
+          entry: 0,
+          driver_id: 'y',
+          driver: 'Y',
+          grid: 2,
+          finish: 2,
+          dnf: false,
+          dnf_reason: '' as const,
+          points: 18,
+        },
+      ],
+    })),
+    standings: [
+      { team_id: 0, name: 'Your Team', points: 0, wins: 0, podiums: 0, dnfs: 0 },
+      { team_id: 1, name: 'Rival', points: 0, wins: 0, podiums: 0, dnfs: 0 },
+    ],
+    drivers: [],
+    player: { team_id: 0, name: 'Your Team', points: 0, wins: 0, podiums: 0, dnfs: 0 },
+    player_position: 1,
+    share: 'x',
+  };
+}
+
+describe('loading', () => {
+  it('starts drafting once the season arrives', () => {
     const s = loaded();
-    expect(s.phase).toBe('choosing');
-    expect(s.window).toBe(0);
-    expect(s.pick).toBeNull();
-    expect(currentDeal(s)).toHaveLength(3);
+    expect(s.phase).toBe('drafting');
+    expect(currentRoll(s)?.id).toBe('a');
+  });
+
+  it('records the mode so free play is never submitted', () => {
+    const s = reducer(initialState, { type: 'SEASON_LOADED', season, mode: 'free' });
+    expect(s.mode).toBe('free');
+  });
+
+  it('reports a load failure', () => {
+    const s = reducer(initialState, { type: 'LOAD_FAILED', error: 'nope' });
+    expect(s.phase).toBe('error');
+    expect(s.error).toBe('nope');
   });
 });
 
-describe('PICK_CARD', () => {
-  it('highlights a card without committing it', () => {
-    const s = reducer(loaded(), { type: 'PICK_CARD', index: 2 });
-    expect(s.pick).toBe(2);
-    expect(s.picks).toEqual([]);
+describe('slot legality', () => {
+  it('closes a slot once it is full', () => {
+    expect(takeable([ITEM_CAR], ITEM_CAR)).toBe(false);
+    expect(takeable([ITEM_DRIVER_A, ITEM_DRIVER_B], ITEM_DRIVER_A)).toBe(false);
+    expect(takeable([ITEM_DRIVER_A], ITEM_DRIVER_B)).toBe(true);
   });
 
-  it('ignores an index outside the deal', () => {
-    const base = loaded();
-    expect(reducer(base, { type: 'PICK_CARD', index: 3 })).toBe(base);
-    expect(reducer(base, { type: 'PICK_CARD', index: -1 })).toBe(base);
+  it('refuses a pick that would leave a slot unfillable', () => {
+    // Four picks in, only the principal missing: nothing else is legal even
+    // though the car slot is technically empty in this contrived case.
+    const picks = [ITEM_DRIVER_A, ITEM_DRIVER_B, ITEM_ENGINEER, ITEM_CAR];
+    expect(takeable(picks, ITEM_PRINCIPAL)).toBe(true);
+    expect(takeable(picks, ITEM_CAR)).toBe(false);
   });
 
-  it('lets the highlight change before committing', () => {
-    let s = reducer(loaded(), { type: 'PICK_CARD', index: 0 });
-    s = reducer(s, { type: 'PICK_CARD', index: 1 });
-    expect(s.pick).toBe(1);
-  });
-
-  it('is ignored outside the choosing phase', () => {
-    const s = { ...loaded(), phase: 'racing' as const };
-    expect(reducer(s, { type: 'PICK_CARD', index: 1 })).toBe(s);
+  it('never lets a draft finish with an empty slot', () => {
+    // Walk every legal line and assert the team is complete at the end.
+    const walk = (picks: number[]) => {
+      if (picks.length === ROLL_COUNT) {
+        const f = filledSlots(picks);
+        expect(f).toEqual({ car: 1, driver: 2, engineer: 1, principal: 1 });
+        return;
+      }
+      for (let k = 0; k < 5; k++) if (takeable(picks, k)) walk([...picks, k]);
+    };
+    walk([]);
   });
 });
 
-describe('CONFIRM_PICK', () => {
-  it('commits the highlighted card and starts racing', () => {
-    let s = reducer(loaded(), { type: 'PICK_CARD', index: 2 });
-    s = reducer(s, { type: 'CONFIRM_PICK' });
-    expect(s.picks).toEqual([2]);
-    expect(s.pick).toBeNull();
-    expect(s.phase).toBe('racing');
-  });
-
-  it('does nothing when no card is highlighted', () => {
-    const base = loaded();
-    expect(reducer(base, { type: 'CONFIRM_PICK' })).toBe(base);
-  });
-
-  it('never commits more picks than there are windows', () => {
+describe('drafting', () => {
+  it('highlights a legal item and ignores an illegal one', () => {
     let s = loaded();
-    for (let w = 0; w < 5; w++) {
-      s = reducer(s, { type: 'PICK_CARD', index: w % 3 });
+    s = reducer(s, { type: 'PICK_ITEM', kind: ITEM_CAR });
+    expect(s.pick).toBe(ITEM_CAR);
+    s = reducer(s, { type: 'CONFIRM_PICK' });
+    // The car slot is full now, so picking a car again changes nothing.
+    const before = s.pick;
+    s = reducer(s, { type: 'PICK_ITEM', kind: ITEM_CAR });
+    expect(s.pick).toBe(before);
+  });
+
+  it('advances the roll on confirm', () => {
+    let s = loaded();
+    s = reducer(s, { type: 'PICK_ITEM', kind: ITEM_CAR });
+    s = reducer(s, { type: 'CONFIRM_PICK' });
+    expect(s.roll).toBe(1);
+    expect(currentRoll(s)?.id).toBe('b');
+    expect(s.picks).toEqual([ITEM_CAR]);
+  });
+
+  it('never commits more picks than there are rolls', () => {
+    let s = loaded();
+    for (const kind of [ITEM_CAR, ITEM_DRIVER_A, ITEM_DRIVER_B, ITEM_ENGINEER, ITEM_PRINCIPAL]) {
+      s = reducer(s, { type: 'PICK_ITEM', kind });
       s = reducer(s, { type: 'CONFIRM_PICK' });
-      s = reducer(s, { type: 'RACES_RESOLVED', result: resultWith((w + 1) * 2) });
-      s = reducer(s, { type: 'NEXT_WINDOW' });
     }
-    expect(s.picks).toHaveLength(5);
+    expect(s.picks).toHaveLength(ROLL_COUNT);
+    expect(draftComplete(s)).toBe(true);
+    expect(s.phase).toBe('reel');
+    s = reducer(s, { type: 'CONFIRM_PICK' });
+    expect(s.picks).toHaveLength(ROLL_COUNT);
+  });
+});
+
+describe('the reel', () => {
+  it('plays one race per tick and finishes', () => {
+    let s: GameState = { ...loaded(), phase: 'reel' };
+    s = reducer(s, { type: 'SEASON_RESOLVED', result: resultWith(3) });
+    expect(s.reelRound).toBe(0);
+    expect(reelComplete(s)).toBe(false);
+    s = reducer(s, { type: 'REEL_TICK' });
+    s = reducer(s, { type: 'REEL_TICK' });
+    expect(s.phase).toBe('reel');
+    s = reducer(s, { type: 'REEL_TICK' });
+    expect(reelComplete(s)).toBe(true);
+    expect(s.phase).toBe('complete');
+  });
+
+  it('never plays past the last race', () => {
+    let s: GameState = { ...loaded(), phase: 'reel' };
+    s = reducer(s, { type: 'SEASON_RESOLVED', result: resultWith(2) });
+    for (let i = 0; i < 10; i++) s = reducer(s, { type: 'REEL_TICK' });
+    expect(s.reelRound).toBe(2);
+  });
+
+  it('skips straight to the end', () => {
+    let s: GameState = { ...loaded(), phase: 'reel' };
+    s = reducer(s, { type: 'SEASON_RESOLVED', result: resultWith(10) });
+    s = reducer(s, { type: 'SKIP_REEL' });
+    expect(s.reelRound).toBe(10);
     expect(s.phase).toBe('complete');
   });
 });
 
-describe('NEXT_WINDOW', () => {
-  it('advances the window to match committed picks', () => {
-    let s = reducer(loaded(), { type: 'PICK_CARD', index: 0 });
-    s = reducer(s, { type: 'CONFIRM_PICK' });
-    s = reducer(s, { type: 'RACES_RESOLVED', result: resultWith(2) });
-    s = reducer(s, { type: 'NEXT_WINDOW' });
-    expect(s.window).toBe(1);
-    expect(s.phase).toBe('choosing');
-    expect(currentDeal(s)[0].id).toBe('a1');
+describe('standingsAfter', () => {
+  it('accumulates only the races played so far', () => {
+    const r = resultWith(4);
+    expect(standingsAfter(r, 0)[0].points).toBe(0);
+    const two = standingsAfter(r, 2);
+    expect(two[0]).toMatchObject({ team_id: 0, points: 50, wins: 2, podiums: 2 });
+    expect(standingsAfter(r, 4)[0].points).toBe(100);
+  });
+
+  it('sorts by the same total order the sim uses', () => {
+    const table = standingsAfter(resultWith(3), 3);
+    expect(table.map((s) => s.team_id)).toEqual([0, 1]);
   });
 });
 
-describe('REVEAL_NEXT', () => {
-  it('reveals races one at a time and stops at the end', () => {
-    let s = reducer(loaded(), { type: 'RACES_RESOLVED', result: resultWith(4) });
-    expect(s.revealed).toBe(0);
-    expect(revealComplete(s)).toBe(false);
-    for (let i = 0; i < 6; i++) s = reducer(s, { type: 'REVEAL_NEXT' });
-    expect(s.revealed).toBe(4);
-    expect(revealComplete(s)).toBe(true);
-  });
-
-  it('does nothing before any races resolve', () => {
-    const base = loaded();
-    expect(reducer(base, { type: 'REVEAL_NEXT' })).toBe(base);
-  });
-
-  it('keeps what was already revealed when more races arrive', () => {
-    let s = reducer(loaded(), { type: 'RACES_RESOLVED', result: resultWith(2) });
-    s = reducer(s, { type: 'REVEAL_NEXT' });
-    s = reducer(s, { type: 'REVEAL_NEXT' });
-    expect(s.revealed).toBe(2);
-    s = reducer(s, { type: 'RACES_RESOLVED', result: resultWith(4) });
-    expect(s.revealed).toBe(2);
-    expect(revealComplete(s)).toBe(false);
-  });
-});
-
-describe('RESET', () => {
-  it('returns to the first window but keeps the season', () => {
-    let s = reducer(loaded(), { type: 'PICK_CARD', index: 1 });
+describe('reset', () => {
+  it('returns to the first roll but keeps the season', () => {
+    let s = loaded();
+    s = reducer(s, { type: 'PICK_ITEM', kind: ITEM_CAR });
     s = reducer(s, { type: 'CONFIRM_PICK' });
     s = reducer(s, { type: 'RESET' });
     expect(s.picks).toEqual([]);
-    expect(s.window).toBe(0);
-    expect(s.phase).toBe('choosing');
+    expect(s.phase).toBe('drafting');
     expect(s.season).toBe(season);
   });
 });
 
-describe('card presentation', () => {
-  it('scores an expensive card riskier than a cheap one', () => {
-    expect(riskPips(card('big', 260, 0, 0))).toBeGreaterThan(riskPips(card('small', 140, 0, 0)));
+describe('derived ratings', () => {
+  // Overall is computed, never sent. These weights mirror roster.go, and a
+  // divergence would show a number the race does not use.
+  it('matches the sim formulas', () => {
+    const te = era('x');
+    expect(carOverall(te.car)).toBe(Math.floor((30 * 90 + 30 * 90 + 30 * 90 + 10 * 80) / 100));
+    expect(driverOverall(te.drivers[0])).toBe(80);
+    expect(engineerOverall(te.engineer)).toBe(80);
+    expect(principalOverall(te.principal)).toBe(80);
   });
 
-  it('scores an aero card safer than an engine card of equal cost', () => {
-    expect(riskPips(card('aero', 0, 0, 250))).toBeLessThan(riskPips(card('eng', 0, 250, 0)));
-  });
-
-  it('always returns a pip count in range', () => {
-    for (const c of [card('z', 0, 0, 0), card('big', 260, 260, 260), card('s', 140, 0, 0)]) {
-      const p = riskPips(c);
-      expect(p).toBeGreaterThanOrEqual(1);
-      expect(p).toBeLessThanOrEqual(5);
-    }
-  });
-
-  it('labels only the areas a card touches', () => {
-    expect(effectLabel(card('x', 0, 120, 80))).toBe('+12 Engine · +8 Aero');
-    expect(effectLabel(card('y', 250, 0, 0))).toBe('+25 Chassis');
+  it('offers exactly five items per roll, one per item kind', () => {
+    const items = itemsOf(era('x'));
+    expect(items.map((i) => i.kind)).toEqual([0, 1, 2, 3, 4]);
+    expect(items.map((i) => i.slot)).toEqual(['car', 'driver', 'driver', 'engineer', 'principal']);
   });
 });

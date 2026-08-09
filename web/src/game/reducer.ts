@@ -1,119 +1,195 @@
-import type { Card, SeasonDescriptor, SeasonResult } from './types';
+import {
+  ROLL_COUNT,
+  SLOT_CAPACITY,
+  SLOT_OF,
+  type SeasonDescriptor,
+  type SeasonResult,
+  type Slot,
+  type Standing,
+  type TeamEra,
+} from './types';
 
-export type Phase = 'loading' | 'choosing' | 'racing' | 'complete' | 'error';
+export type Phase = 'loading' | 'drafting' | 'reel' | 'complete' | 'error';
+
+/** Where a run's seed came from, and therefore whether it can be scored. */
+export type Mode = 'daily' | 'free';
 
 export interface GameState {
   phase: Phase;
+  mode: Mode;
   season: SeasonDescriptor | null;
-  /** Zero-based index of the development window being chosen. */
-  window: number;
-  /** The card highlighted but not yet committed, or null. */
+  /** Zero-based index of the roll being decided. */
+  roll: number;
+  /** The item highlighted but not yet committed, or null. */
   pick: number | null;
-  /** Committed card indices, one per window. */
+  /** Committed item indices, one per roll. */
   picks: number[];
-  /** Races resolved so far, from RunPartial after each pick. */
   result: SeasonResult | null;
-  /** How many of result.races have been shown. Drives the reveal. */
-  revealed: number;
+  /** How many races the reel has played. Drives the whole animation. */
+  reelRound: number;
   error: string | null;
   submitted: boolean;
 }
 
 export const initialState: GameState = {
   phase: 'loading',
+  mode: 'daily',
   season: null,
-  window: 0,
+  roll: 0,
   pick: null,
   picks: [],
   result: null,
-  revealed: 0,
+  reelRound: 0,
   error: null,
   submitted: false,
 };
 
 export type Action =
-  | { type: 'SEASON_LOADED'; season: SeasonDescriptor }
+  | { type: 'SEASON_LOADED'; season: SeasonDescriptor; mode: Mode }
   | { type: 'LOAD_FAILED'; error: string }
-  | { type: 'PICK_CARD'; index: number }
+  | { type: 'PICK_ITEM'; kind: number }
   | { type: 'CONFIRM_PICK' }
-  | { type: 'RACES_RESOLVED'; result: SeasonResult }
-  | { type: 'REVEAL_NEXT' }
-  | { type: 'NEXT_WINDOW' }
+  | { type: 'SEASON_RESOLVED'; result: SeasonResult }
+  | { type: 'REEL_TICK' }
+  | { type: 'SKIP_REEL' }
   | { type: 'SUBMITTED' }
   | { type: 'RESET' };
 
-/** The deal for the window currently being chosen. */
-export function currentDeal(state: GameState): Card[] {
-  if (!state.season) return [];
-  return state.season.deals[state.window] ?? [];
+/** The team-era on offer at the roll being decided. */
+export function currentRoll(state: GameState): TeamEra | null {
+  return state.season?.rolls[state.roll] ?? null;
 }
 
-/** Whether every race resolved so far has been shown. */
-export function revealComplete(state: GameState): boolean {
-  return !!state.result && state.revealed >= state.result.races.length;
+/** How many places of each slot the committed picks have filled. */
+export function filledSlots(picks: number[]): Record<Slot, number> {
+  const filled: Record<Slot, number> = { car: 0, driver: 0, engineer: 0, principal: 0 };
+  for (const p of picks) {
+    const slot = SLOT_OF[p];
+    if (slot) filled[slot]++;
+  }
+  return filled;
+}
+
+/**
+ * takeable reports whether an item can legally be taken at this roll.
+ *
+ * Two rules, and the second is the one that matters. A slot with no room
+ * left is closed, obviously. But an item is also refused when taking it
+ * would leave more empty places than there are rolls remaining -- with five
+ * rolls and five places that only bites on the last roll, and it is what
+ * stops the player drafting themselves into a team with no car.
+ */
+export function takeable(picks: number[], kind: number): boolean {
+  const slot = SLOT_OF[kind];
+  if (!slot) return false;
+  const filled = filledSlots(picks);
+  if (filled[slot] >= SLOT_CAPACITY[slot]) return false;
+
+  const remaining = ROLL_COUNT - picks.length;
+  let need = 0;
+  for (const s of Object.keys(SLOT_CAPACITY) as Slot[]) {
+    let short = SLOT_CAPACITY[s] - filled[s];
+    if (s === slot) short--;
+    if (short > 0) need += short;
+  }
+  return need <= remaining - 1;
+}
+
+export function draftComplete(state: GameState): boolean {
+  return state.picks.length >= ROLL_COUNT;
+}
+
+/** Whether the reel has played every race it has. */
+export function reelComplete(state: GameState): boolean {
+  return !!state.result && state.reelRound >= state.result.races.length;
 }
 
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'SEASON_LOADED':
-      return { ...initialState, phase: 'choosing', season: action.season };
+      return { ...initialState, phase: 'drafting', season: action.season, mode: action.mode };
 
     case 'LOAD_FAILED':
       return { ...state, phase: 'error', error: action.error };
 
-    case 'PICK_CARD': {
-      if (state.phase !== 'choosing') return state;
-      const deal = currentDeal(state);
-      // Out-of-range indices are ignored rather than clamped: a pick is an
+    case 'PICK_ITEM': {
+      if (state.phase !== 'drafting') return state;
+      // Illegal picks are ignored rather than clamped: a pick is an
       // identity, not a magnitude, so there is no sensible nearest value.
-      if (action.index < 0 || action.index >= deal.length) return state;
-      return { ...state, pick: action.index };
+      if (!takeable(state.picks, action.kind)) return state;
+      return { ...state, pick: action.kind };
     }
 
     case 'CONFIRM_PICK': {
-      if (state.phase !== 'choosing' || state.pick === null || !state.season) return state;
+      if (state.phase !== 'drafting' || state.pick === null) return state;
+      if (!takeable(state.picks, state.pick)) return state;
+      const picks = [...state.picks, state.pick];
       return {
         ...state,
-        picks: [...state.picks, state.pick],
+        picks,
         pick: null,
-        phase: 'racing',
+        roll: picks.length,
+        phase: picks.length >= ROLL_COUNT ? 'reel' : 'drafting',
       };
     }
 
-    case 'RACES_RESOLVED': {
-      // Keep whatever has already been revealed: the new races append.
-      const last = state.picks.length >= (state.season?.deals.length ?? 0);
-      return {
-        ...state,
-        result: action.result,
-        phase: last ? 'complete' : 'racing',
-      };
-    }
+    case 'SEASON_RESOLVED':
+      return { ...state, result: action.result, phase: 'reel', reelRound: 0 };
 
-    case 'REVEAL_NEXT':
+    case 'REEL_TICK': {
       if (!state.result) return state;
+      const next = Math.min(state.reelRound + 1, state.result.races.length);
       return {
         ...state,
-        revealed: Math.min(state.revealed + 1, state.result.races.length),
+        reelRound: next,
+        phase: next >= state.result.races.length ? 'complete' : 'reel',
       };
-
-    case 'NEXT_WINDOW': {
-      if (!state.season) return state;
-      if (state.picks.length >= state.season.deals.length) {
-        return { ...state, phase: 'complete' };
-      }
-      return { ...state, window: state.picks.length, phase: 'choosing' };
     }
+
+    case 'SKIP_REEL':
+      if (!state.result) return state;
+      return { ...state, reelRound: state.result.races.length, phase: 'complete' };
 
     case 'SUBMITTED':
       return { ...state, submitted: true };
 
     case 'RESET':
       return state.season
-        ? { ...initialState, phase: 'choosing', season: state.season }
+        ? { ...initialState, phase: 'drafting', season: state.season, mode: state.mode }
         : initialState;
 
     default:
       return state;
   }
+}
+
+/**
+ * standingsAfter recomputes the constructors' table from the races the reel
+ * has played so far. The full result is already in hand -- this exists so
+ * the table climbs race by race instead of appearing finished.
+ */
+export function standingsAfter(result: SeasonResult, rounds: number): Standing[] {
+  const byTeam = new Map<number, Standing>();
+  for (const s of result.standings) {
+    byTeam.set(s.team_id, { ...s, points: 0, wins: 0, podiums: 0, dnfs: 0 });
+  }
+  for (const race of result.races.slice(0, rounds)) {
+    for (const e of race.entries) {
+      const s = byTeam.get(e.team_id);
+      if (!s) continue;
+      s.points += e.points;
+      if (e.dnf) s.dnfs++;
+      else if (e.finish === 1) {
+        s.wins++;
+        s.podiums++;
+      } else if (e.finish <= 3) s.podiums++;
+    }
+  }
+  return [...byTeam.values()].sort(
+    (a, b) =>
+      b.points - a.points ||
+      b.wins - a.wins ||
+      b.podiums - a.podiums ||
+      a.team_id - b.team_id,
+  );
 }

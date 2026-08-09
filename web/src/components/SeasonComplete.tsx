@@ -10,6 +10,8 @@ export function SeasonComplete({
   error,
   name,
   onNameChange,
+  mode,
+  onPlayAgain,
 }: {
   result: SeasonResult;
   onSubmit: () => void;
@@ -18,14 +20,23 @@ export function SeasonComplete({
   error: string | null;
   name: string;
   onNameChange: (v: string) => void;
+  mode: 'daily' | 'free';
+  onPlayAgain: () => void;
 }) {
   const [copied, setCopied] = useState<'plain' | 'build' | null>(null);
 
-  // The default share stays spoiler-free: on a shared daily seed your parts
-  // ARE the strategy, so naming them gives the day away. Copying with the
-  // build is a separate, deliberate act -- which is what makes an argument
-  // about your picks possible without spoiling anyone who has not played.
-  const withBuild = `${result.share}\n${result.build.map((c) => c.name).join(' · ')}`;
+  // The default share stays spoiler-free: on a shared daily seed your LINEUP
+  // is the strategy, so naming it gives the day away. Copying with the team
+  // is a separate, deliberate act -- which is what makes an argument about
+  // your picks possible without spoiling anyone who has not played.
+  const l = result.lineup;
+  const withBuild = `${result.share}\n${[
+    l.car.name,
+    l.drivers[0].name,
+    l.drivers[1].name,
+    l.engineer.name,
+    l.principal.name,
+  ].join(' · ')}`;
 
   async function copy(which: 'plain' | 'build') {
     try {
@@ -42,6 +53,7 @@ export function SeasonComplete({
       <p className="text-xs font-semibold uppercase tracking-widest text-muted">Season complete</p>
       <p className="mt-1 text-4xl font-bold tabular-nums">
         P{result.player_position}
+        <span className="ml-2 text-xl font-normal text-muted">of 12</span>
         <span className="ml-3 text-xl font-normal text-muted">{result.player.points} pts</span>
       </p>
 
@@ -77,11 +89,19 @@ export function SeasonComplete({
           onClick={() => copy('build')}
           className="rounded border border-edge px-3 py-1.5 text-xs text-muted transition hover:border-muted hover:text-slate-100"
         >
-          {copied === 'build' ? 'Copied' : 'Copy with build'}
+          {copied === 'build' ? 'Copied' : 'Copy with team'}
         </button>
       </div>
 
-      {!submitted && (
+      <button
+        data-testid="play-again"
+        onClick={onPlayAgain}
+        className="mt-4 w-full rounded border border-edge px-4 py-2.5 text-sm font-semibold transition hover:border-muted"
+      >
+        Play again on a new roll
+      </button>
+
+      {mode === 'daily' && !submitted && (
         <div className="mt-6 border-t border-edge pt-4">
           <label htmlFor="name" className="text-xs uppercase tracking-widest text-muted">
             Name for the leaderboard
@@ -106,10 +126,18 @@ export function SeasonComplete({
             </button>
           </div>
           <p className="mt-2 text-xs text-muted">
-            Only your ten decisions are sent. The server replays them and computes the score itself,
-            so the leaderboard measures decisions and nothing else.
+            Only your five picks are sent. The server re-derives the rolls from the seed, replays
+            the picks and computes the score itself, so the leaderboard measures decisions and
+            nothing else.
           </p>
         </div>
+      )}
+
+      {mode === 'free' && (
+        <p className="mt-6 border-t border-edge pt-4 text-xs text-muted">
+          Free play. This run is not scored &mdash; the leaderboard is the daily seed, where
+          everyone faces the same five rolls.
+        </p>
       )}
 
       {submitted && (

@@ -172,7 +172,7 @@ func TestOneRunPerPlayerPerSeason(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	picks := sim.Strategy("adaptive", sim.GenerateSeason(7))
+	picks := sim.Strategy("bestavailable", sim.GenerateSeason(7))
 	if picks == nil {
 		t.Fatal("unknown strategy name -- the strategy list changed")
 	}
