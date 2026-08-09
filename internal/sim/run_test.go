@@ -302,3 +302,49 @@ func TestDifferentSeedsRollDifferently(t *testing.T) {
 		t.Errorf("%d/100 seed pairs opened on the same team -- rolls are not varying", same)
 	}
 }
+
+// TestDevelopmentIsWorthWhatTheDocsSay pins the two numbers docs/Game
+// Design.md quotes for the principal slot.
+//
+// The first version of that section claimed a mid car under a great
+// principal out-develops a great car under a weak one by the closing
+// rounds. It does not: the swing is 3.40 rating points, and car Overall
+// spans 61 to 97. The prose was corrected to the measurement rather than
+// the constant raised to the prose, because tripling DevRate to make the
+// claim true would let the principal outweigh the car -- the inversion the
+// rating spreads exist to prevent.
+func TestDevelopmentIsWorthWhatTheDocsSay(t *testing.T) {
+	best, worst := 0, 99
+	for _, te := range Roster {
+		if d := te.Principal.Development; d > best {
+			best = d
+		}
+		if d := te.Principal.Development; d < worst {
+			worst = d
+		}
+	}
+
+	gain := func(dev, round int) Milli {
+		return Milli((dev - DevBaseline) * round * DevRate)
+	}
+
+	final := gain(best, RaceCount-1) - gain(worst, RaceCount-1)
+	if final != 3402 {
+		t.Errorf("final-round development advantage is %d milli, docs say 3.402 rating points", final)
+	}
+
+	var sum Milli
+	for r := 0; r < RaceCount; r++ {
+		sum += gain(best, r) - gain(worst, r)
+	}
+	if avg := sum / RaceCount; avg != 1701 {
+		t.Errorf("season-average development advantage is %d milli, docs say 1.701 rating points", avg)
+	}
+
+	// And the claim it is NOT allowed to support: development must not
+	// overturn a large car deficit. If it ever does, the principal has
+	// started outweighing the car.
+	if final >= FromInt(7) {
+		t.Errorf("development swings %d milli, enough to erase a 7-point chassis deficit", final)
+	}
+}

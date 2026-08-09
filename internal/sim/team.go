@@ -39,9 +39,14 @@ func entriesFor(t Team) [CarsPerTeam]*entryState {
 
 // development is the rating the principal has added to the car by this
 // round. It is a pure function of the round with no RNG draw, so the car
-// visibly climbs across the season: a mid car under a great principal
-// out-develops a great car under a weak one by the closing rounds, which is
-// the most Formula 1 thing in the design.
+// visibly climbs across the season.
+//
+// Worth what, exactly: the roster's best principal (95) beats its worst
+// (74) by 1.70 rating points on season average and 3.40 by the final round,
+// which is 2.3 sigma of race noise. Enough to overturn a small car deficit
+// and to decide a close title; NOT enough to make a mid car beat a great
+// one, because car Overall spans 61 to 97. TestDevelopmentIsWorthWhatTheDocsSay
+// pins those two numbers so the claim cannot drift.
 func (e *entryState) development(round int) Milli {
 	return Milli((e.principal.Development - DevBaseline) * round * DevRate)
 }

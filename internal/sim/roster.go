@@ -71,9 +71,9 @@ func (e EngineerSpec) Overall() int {
 
 // PrincipalSpec is the team boss. Because the whole team is locked in
 // before round one, the principal is the only thing that changes the car
-// during the season: Development adds rating every round, so a mid car
-// under a great principal out-develops a great car under a weak one by the
-// closing rounds.
+// during the season: Development adds rating every round, worth up to 3.40
+// rating points by the final round across the roster's range. See
+// team.go's development method for what that does and does not buy.
 type PrincipalSpec struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

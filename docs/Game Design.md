@@ -42,9 +42,16 @@ Bull retires about twice a season across two cars, a 1967 Lotus 49 about six tim
 is one of the fastest cars in the game. Taking it is a bet, not a purchase.
 
 **Development is the only thing that moves after lights out in round one.** The principal adds
-rating to the car every round, so a mid car under Colin Chapman out-develops a great car under
-a weak principal by the closing rounds. It is the most Formula 1 thing in the design and the
-reason the principal slot is not an afterthought.
+rating to the car every round, so the car you start with is not the car you finish with.
+
+**Measured, because the first draft of this paragraph overclaimed it.** Across the roster the best
+principal (Colin Chapman, 95) out-develops the worst (Nello Ugolini, 74) by **1.70 rating points on
+season average and 3.40 by the final round** — 2.3σ of race noise. That is enough to overturn a
+small car deficit, and enough to decide a close championship in the closing rounds where Nerve also
+lands. It is *not* enough to make a mid car beat a great one: car Overall spans 61 to 97, so a
+seven-point chassis deficit still loses at round ten. An earlier version of this section claimed
+otherwise. Making it true would need `DevRate` roughly tripled, which would let the principal
+outweigh the car — the exact inversion the spreads above exist to prevent.
 
 ### Why the card draft went
 
