@@ -1,10 +1,18 @@
 // Package api serves the JSON API and the embedded frontend.
 //
-// The trust boundary lives here. The client posts the decisions it made and
-// nothing else; the server re-runs those decisions through the same
-// simulation package the browser used and computes the authoritative score.
-// A cheater would have to find decisions that genuinely produce a high
-// score, which is just playing well.
+// The trust boundary lives here. The client posts the five picks it made
+// and nothing else; the server re-derives the rolls from the season's seed,
+// replays those picks through the same simulation package the browser used,
+// and computes the authoritative score.
+//
+// What that claim is NOT: it does not make the game unsearchable. 240 legal
+// drafts is trivially enumerable when the simulation runs in the browser,
+// and enumerating them wins 40% of titles against 17.7% for the best
+// scripted line. An earlier version of this comment said a cheater "would
+// have to find decisions that genuinely produce a high score, which is just
+// playing well" -- true of the continuous sliders that are long gone, and
+// not true of any draft. Scores cannot be fabricated; they can be searched
+// for. See docs/_README.md.
 package api
 
 import (

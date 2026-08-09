@@ -6,6 +6,12 @@ everything downstream is plumbing that can be built with confidence once the rul
 
 **Estimates assume evenings and weekends.** They are planning aids, not commitments.
 
+> **M0–M4 are done, and then done again.** The input surface was rebuilt twice after M4: first the
+> three budget sliders became a five-window card draft, then the card draft became the pre-season
+> team draft the game now is. `docs/Game Design.md` records both rebuilds and the measurements that
+> forced them. The M4 milestone below is written as it was originally specified; the note at the end
+> of it says what actually shipped.
+
 ---
 
 ## M0 — Sim engine, no server *(~4 evenings)*
@@ -81,6 +87,17 @@ The longest milestone and the one carrying the architectural centrepiece.
 
 **Done when:** the parity test passes, and a full season can be played and submitted in a browser.
 
+**What shipped, after two rebuilds of the input surface.** "Budget allocation" is gone twice over.
+The frontend is a draft screen (a team-season and the five things you can take from it), a race reel
+that plays ten rounds in about forty-five seconds with a constructors bar chart climbing behind it,
+and the result — constructors table, drivers table, share card, leaderboard. Free play was added
+here rather than in a later milestone because it needed no backend at all: `GenerateSeason` is pure
+and already compiled into the WASM module.
+
+The parity test did come first, and it passed on its first run with nothing to debug — the sim was
+already all `int64` fixed-point and Irwin-Hall normals, so the roster's 0–99 ratings introduced no
+new floating point. It has since been rerun after every rules change and has never failed.
+
 ---
 
 ## M5 — Deploy and observability *(~3 evenings)*
@@ -112,7 +129,11 @@ observability decisions.
 ## Rough total
 
 **~22 evenings**, call it 5–7 weeks at a realistic pace alongside a full-time job. M4 is the most
-likely to overrun.
+likely to overrun — and it did, twice, because the input surface was rebuilt after it rather than
+during it. Both rebuilds kept the simulation's machinery entirely: fixed-point arithmetic, the
+vendored PCG64, the purity test, the golden fixtures and the parity guarantee were untouched each
+time. Only the meaning of a decision changed. That is the clearest evidence the boundary between
+"the rules" and "the input surface" was drawn in the right place.
 
 ## Sequencing notes
 
@@ -129,10 +150,15 @@ have no Terraform than Terraform you cannot explain.
 
 ## What would make this fail
 
-- **Balance never lands.** If M1 cannot find σ values where decisions matter but do not fully
+- **Balance never lands.** If the sweeps cannot find settings where decisions matter but do not fully
   determine outcomes, the game is not fun and no amount of engineering fixes that. Mitigation: treat
-  M1 as a real gate. If it fails twice, simplify the rules rather than adding more.
+  it as a real gate. *Outcome:* it landed three times, on three different games — sliders, cards, and
+  the team draft — and each time the harness rather than intuition found the problem. It also caught
+  two fixes that did not work: σ is the wrong lever for the midfield, and the midfield lockout is
+  structural rather than a rating error. Both reverts are recorded.
 - **WASM bundle size.** ~2 MB gzipped is tolerable; materially worse is not. Fallback is TinyGo,
   evaluated only against a measured number.
 - **Scope creep into a career mode.** Multi-season progression is the obvious next feature and would
   double the project. It is out of scope, and the daily seed is the reason the current scope works.
+  The team draft makes the temptation worse, not better — a roster of 52 team-eras looks like the
+  start of a career mode. It is not one, and free play is the answer to "I want another go".

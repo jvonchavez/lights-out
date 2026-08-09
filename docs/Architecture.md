@@ -14,7 +14,7 @@ dual-target simulation and the verification model, not the number of moving part
 │  └───────────────┘   └──────────────────┘   │
 │         │  plays the full season locally     │
 └─────────┼───────────────────────────────────┘
-          │ POST /api/runs  { seed, decisions[] }
+          │ POST /api/runs  { season_id, picks[] }
           ▼
 ┌─────────────────────────────────────────────┐
 │  Go service (single binary, AWS App Runner) │
@@ -38,19 +38,33 @@ dual-target simulation and the verification model, not the number of moving part
 function.
 
 ```go
-// picks has one entry per development window, each an index into that
-// window's dealt cards.
+// picks has one entry per roll, each an index into the five items that
+// roll's team-era offers.
 func RunSeason(seed int64, picks []int) (SeasonResult, error)
 
-// RunPartial resolves only the races a prefix of picks unlocks, so the
-// client can show the two races a window caused before dealing the next.
-func RunPartial(seed int64, picks []int) (SeasonResult, error)
+// RollsFor is the draft: the five team-eras a seed offers.
+func RollsFor(seed int64) [RollCount]TeamEra
+
+// BuildLineup replays picks against rolls. It is the whole validation
+// surface for a submission, and it lives here rather than in the API so the
+// browser and the server enforce identical rules.
+func BuildLineup(rolls [RollCount]TeamEra, picks []int) (Lineup, error)
 ```
 
+`RunPartial` is gone. It existed to resolve the races each in-season development window unlocked,
+and there are no in-season decisions left: the team is locked in before round one and the whole
+season resolves at once. The client's race-by-race reveal is presentation over a result it already
+holds.
+
 **Three independent RNG streams**, all derived from the seed: `seed` for season generation,
-`seed ^ 0x5EED` for race resolution, `seed ^ 0xCA4D` for card deals. Keeping them separate means
-editing the card pool cannot shift historical race outcomes, and changing generation cannot shift
-deals. Draw order is the determinism contract, and three streams keep it local.
+`seed ^ 0x5EED` for race resolution, `seed ^ 0xCA4D` for draft rolls. Keeping them separate means
+editing the roster cannot shift historical race outcomes, and changing generation cannot shift what
+you are offered. Draw order is the determinism contract, and three streams keep it local.
+
+**The rival field consumes no randomness at all.** It is the real 2026 grid, identical on every
+seed, so `GenerateSeason` draws nothing but the calendar order. That deleted `rivals.go` outright —
+there is no rival AI, no archetype table, and no draw-order surface where rival behaviour could
+perturb race RNG.
 
 It compiles to two targets:
 
@@ -69,24 +83,35 @@ number is a problem, not preemptively.
 
 ## Request flow
 
-**Playing.** The browser fetches today's season descriptor (seed, calendar, starting ratings), loads
-the WASM module, and runs the entire season client-side. Every race resolves instantly with no network
-round-trip. The player's decisions accumulate in memory.
+**Playing.** The browser fetches today's season descriptor (seed, calendar, the 2026 field, and the
+five rolls), loads the WASM module, and runs the entire season client-side once the draft is
+complete. No network round-trip resolves anything. The rolls come from the API as well as from the
+WASM module, so the draft renders before the ~1.25 MB module has finished loading — and the server
+stays the authority on what was offered.
 
-**Submitting.** The client posts `{ season_id, picks[] }` — never a score. The server re-derives the
-deal from the season's seed, calls `sim.RunSeason` natively with the submitted picks, and computes
-the authoritative result. The client's own score is not sent, not read, and not trusted; there is no
-field on the request struct for it to occupy.
+**Free play** needs no backend at all. `GenerateSeason` is pure and compiled into the WASM module,
+so the client generates its own seed and simply never posts a run. Unlimited replays cost one page
+of JavaScript and no request.
 
-**Verification** rejects a submission when: the pick count does not match the window count, any pick
-is outside the deal, the season is closed, the season was published under a different sim version,
-or this player has already submitted for this season. Everything the client could lie about is
-recomputed from the seed.
+**Submitting.** The client posts `{ season_id, picks[] }` — five integers, never a score. The server
+re-derives the rolls from the season's seed, calls `sim.RunSeason` natively with the submitted
+picks, and computes the authoritative result. The client's own score is not sent, not read, and not
+trusted; there is no field on the request struct for it to occupy.
 
-Picks make the attack surface smaller than allocations did — a client cannot describe a development
-that was never offered. What they do not do is make the game unsearchable: 243 lines is trivially
-enumerable client-side. See "What the verification does and does not claim" in `_README.md`; the
-honest claim is that scores cannot be fabricated, not that they cannot be searched for.
+**Verification** rejects a submission when: the pick count does not match the roll count, any pick is
+outside the five items a roll offers, **the picks do not form a legal team**, the season is closed,
+the season was published under a different sim version, or this player has already submitted for this
+season. Everything the client could lie about is recomputed from the seed.
+
+The legality check is new and is stronger than a card draft could express. `[0,0,0,0,0]` is five
+in-range indices and five cars; `[1,2,1,3,4]` is three drivers and no car. Both are 400s, and the
+rule lives in `BuildLineup` inside the sim, so the browser greys out the same items the server would
+refuse.
+
+What none of this does is make the game unsearchable: 240 legal drafts is trivially enumerable
+client-side, and enumerating them wins the championship 40% of the time against 17.7% for the best
+scripted line. See "What the verification does and does not claim" in `_README.md`; the honest claim
+is that scores cannot be fabricated, not that they cannot be searched for.
 
 **The sim version gate is enforced, not documented.** A season is verified under the version it was
 published with. Replaying the same picks under changed rules produces a different score, so a
@@ -100,9 +125,9 @@ CREATE TABLE seasons (
   id           bigserial PRIMARY KEY,
   seed         bigint      NOT NULL,
   sim_version  text        NOT NULL,
-  calendar     jsonb       NOT NULL,   -- circuits, profiles, budgets
-  field        jsonb       NOT NULL,   -- rival teams, starting ratings, AI archetypes
-  published_at timestamptz NOT NULL,
+  calendar     jsonb       NOT NULL,   -- circuits and their profiles
+  field        jsonb       NOT NULL,   -- the 2026 grid: cars, drivers, staff
+  published_at date        NOT NULL,
   closes_at    timestamptz NOT NULL,
   UNIQUE (published_at)
 );
@@ -117,7 +142,7 @@ CREATE TABLE runs (
   id          bigserial PRIMARY KEY,
   season_id   bigint      NOT NULL REFERENCES seasons(id),
   player_id   uuid        NOT NULL REFERENCES players(id),
-  decisions   jsonb       NOT NULL,    -- the only thing the client supplies
+  decisions   jsonb       NOT NULL,    -- the five picks: the only thing the client supplies
   points      int         NOT NULL,    -- computed server-side
   wins        int         NOT NULL,
   podiums     int         NOT NULL,
@@ -136,6 +161,10 @@ verified under the version it was published with; old seasons are frozen, never 
 The `UNIQUE (season_id, player_id)` constraint is the entire anti-resubmission mechanism — one
 submission per player per day, enforced by the database rather than by application logic that can
 race.
+
+The schema did not change for the gameplay rebuild. `runs.decisions` was an array of five ints
+before and is an array of five ints now; only their meaning moved, from card indices to item
+indices. There was no migration to write.
 
 ## Daily seed scheduler
 

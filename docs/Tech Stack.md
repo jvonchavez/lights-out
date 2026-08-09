@@ -25,7 +25,8 @@ picks — being able to say why you did *not* use something is what separates a 
 | Framework | **React 18 + TypeScript** | Already on the resume, so zero learning cost, and this project's purpose is the Go work | Svelte, Solid — smaller and arguably nicer, but they buy learning time this project should not spend |
 | Build | **Vite** | Fast, sane defaults, trivial WASM asset handling | Next.js — SSR for a client-side game that ships its own runtime makes no sense |
 | Styling | **Tailwind** | Fast iteration, no naming decisions, no CSS file sprawl | CSS modules, styled-components |
-| Charts | **Hand-rolled SVG** | The only visualisations are a standings table and a season sparkline. A charting library would be more code than the charts | Recharts, D3 |
+| Charts | **Hand-rolled SVG and CSS** | The visualisations are a standings table, a season sparkline and a constructors bar chart that grows as the reel plays. All three are a `div` with a width or a `polyline`; a charting library would be more code than the charts | Recharts, D3 |
+| Animation | **CSS keyframes** | The race reel needs one staggered slide-in and one width transition, both with a `prefers-reduced-motion` escape. A 30 kB animation library for two rules is not a trade worth making | Framer Motion, GSAP |
 | State | **`useState` + `useReducer`** | The whole game state is one object mutated by one reducer. That is precisely what `useReducer` is | Redux, Zustand, Jotai |
 
 ## Testing
