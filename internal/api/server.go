@@ -23,27 +23,23 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/jvonmikael/lights-out/internal/scheduler"
 	"github.com/jvonmikael/lights-out/internal/store"
 )
 
 // Server holds the API dependencies.
 type Server struct {
 	store    *store.Store
-	sched    *scheduler.Scheduler
 	log      *slog.Logger
 	metrics  *Metrics
 	registry *prometheus.Registry
 	limiter  *rateLimiter
 	staticFS http.Handler
-	now      func() time.Time
 }
 
 // Options configure a Server.
 type Options struct {
-	Store     *store.Store
-	Scheduler *scheduler.Scheduler
-	Logger    *slog.Logger
+	Store  *store.Store
+	Logger *slog.Logger
 	// Static serves the built frontend. Optional: nil disables it, which is
 	// what the handler tests do.
 	Static http.Handler
@@ -61,18 +57,13 @@ func NewServer(o Options) *Server {
 	}
 	reg := prometheus.NewRegistry()
 	metrics := NewMetrics(reg)
-	if o.Scheduler != nil {
-		o.Scheduler.OnPublish = metrics.SeasonsPublished.Inc
-	}
 	return &Server{
 		store:    o.Store,
-		sched:    o.Scheduler,
 		log:      o.Logger,
 		metrics:  metrics,
 		registry: reg,
 		limiter:  newRateLimiter(o.SubmitPerMinute, time.Minute),
 		staticFS: o.Static,
-		now:      time.Now,
 	}
 }
 
@@ -81,8 +72,9 @@ func NewServer(o Options) *Server {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /api/seasons/today", s.observe("/api/seasons/today", s.handleTodaySeason))
-	mux.HandleFunc("GET /api/seasons/{id}/leaderboard", s.observe("/api/seasons/{id}/leaderboard", s.handleLeaderboard))
+	mux.HandleFunc("POST /api/seasons", s.observe("/api/seasons", s.handleNewSeason))
+	mux.HandleFunc("GET /api/seasons/{id}", s.observe("/api/seasons/{id}", s.handleGetSeason))
+	mux.HandleFunc("GET /api/leaderboard", s.observe("/api/leaderboard", s.handleLeaderboard))
 	mux.HandleFunc("POST /api/runs", s.observe("/api/runs", s.handleSubmitRun))
 	mux.HandleFunc("GET /healthz", s.observe("/healthz", s.handleHealthz))
 	mux.Handle("GET /metrics", promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{}))

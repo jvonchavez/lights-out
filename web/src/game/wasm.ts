@@ -1,17 +1,4 @@
-import type { Circuit, SeasonResult, Team, TeamEra } from './types';
-
-/**
- * What sim.GenerateSeason returns. It is NOT a SeasonDescriptor: there is no
- * database id and no closing time, because a free-play season was never
- * published. App builds a descriptor around it.
- */
-export interface GeneratedSeason {
-  seed: number;
-  sim_version: string;
-  calendar: Circuit[];
-  rolls: TeamEra[];
-  rivals: Team[];
-}
+import type { SeasonResult } from './types';
 
 /** The functions the Go WASM module installs on globalThis. */
 declare global {
@@ -27,12 +14,16 @@ declare global {
   }
 }
 
+/**
+ * Only what the client actually calls. The WASM module also installs
+ * lightsOutRollsFor and lightsOutGenerateSeason -- they are part of the
+ * module's public surface and let any client re-derive a draft or a
+ * calendar independently, but the API already returns both, so the client
+ * has no reason to.
+ */
 export interface SimAPI {
   version: string;
   runSeason(seed: string, picks: number[]): SeasonResult;
-  /** The five team-eras a seed offers, from the same source the server verifies against. */
-  rollsFor(seed: string): TeamEra[];
-  generateSeason(seed: string): GeneratedSeason;
 }
 
 let pending: Promise<SimAPI> | null = null;
@@ -46,9 +37,8 @@ let pending: Promise<SimAPI> | null = null;
  * they produce byte-identical results across 3000 seeds.
  *
  * Loaded lazily after first paint: the module is ~1.25 MB gzipped, and the
- * draft renders from the API response without it. Free play needs no
- * backend at all -- GenerateSeason is pure, so the client rolls its own
- * seed and simply never posts a run.
+ * draft renders from the API response without it, so the download overlaps
+ * the five picks rather than blocking them.
  */
 export function loadSim(): Promise<SimAPI> {
   if (pending) return pending;
@@ -70,12 +60,6 @@ export function loadSim(): Promise<SimAPI> {
       version: window.lightsOutVersion ?? 'unknown',
       runSeason(seed, picks) {
         return unwrap<SeasonResult>(window.lightsOutRunSeason!(seed, JSON.stringify(picks)));
-      },
-      rollsFor(seed) {
-        return unwrap<TeamEra[]>(window.lightsOutRollsFor!(seed));
-      },
-      generateSeason(seed) {
-        return unwrap<GeneratedSeason>(window.lightsOutGenerateSeason!(seed));
       },
     };
   })();

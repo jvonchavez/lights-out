@@ -37,7 +37,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		}, []string{"outcome"}),
 		SeasonsPublished: f.NewCounter(prometheus.CounterOpts{
 			Name: "seasons_published_total",
-			Help: "Seasons published by the daily scheduler.",
+			Help: "Seasons issued to players.",
 		}),
 	}
 }

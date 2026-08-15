@@ -68,7 +68,7 @@ func newTestStore(t *testing.T) *Store {
 	return s
 }
 
-func testSeason(t *testing.T, s *Store, seed int64, day time.Time) int64 {
+func testSeason(t *testing.T, s *Store, seed int64) int64 {
 	t.Helper()
 	season := sim.GenerateSeason(seed)
 	cal, _ := json.Marshal(season.Calendar)
@@ -78,8 +78,6 @@ func testSeason(t *testing.T, s *Store, seed int64, day time.Time) int64 {
 		SimVersion: sim.Version,
 		Calendar:   cal,
 		Field:      field,
-		Day:        day,
-		ClosesAt:   day.Add(24 * time.Hour),
 	})
 	if err != nil {
 		t.Fatalf("creating season: %v", err)
@@ -106,12 +104,11 @@ func TestMigrationsAreIdempotent(t *testing.T) {
 func TestSeasonRoundTrip(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	day := time.Date(2026, 9, 2, 0, 0, 0, 0, time.UTC)
-	id := testSeason(t, s, 4242, day)
+	id := testSeason(t, s, 4242)
 
-	got, err := s.SeasonByDate(ctx, day)
+	got, err := s.SeasonByID(ctx, id)
 	if err != nil {
-		t.Fatalf("SeasonByDate: %v", err)
+		t.Fatalf("SeasonByID: %v", err)
 	}
 	if got.ID != id {
 		t.Errorf("got season %d, want %d", got.ID, id)
@@ -122,50 +119,48 @@ func TestSeasonRoundTrip(t *testing.T) {
 	if got.SimVersion != sim.Version {
 		t.Errorf("sim version = %q, want %q", got.SimVersion, sim.Version)
 	}
-
-	byID, err := s.SeasonByID(ctx, id)
-	if err != nil {
-		t.Fatalf("SeasonByID: %v", err)
-	}
-	if byID.Seed != 4242 {
-		t.Errorf("SeasonByID seed = %d, want 4242", byID.Seed)
+	if got.CreatedAt.IsZero() {
+		t.Error("created_at was not populated")
 	}
 }
 
-func TestSeasonPublishedAtIsUnique(t *testing.T) {
+// Under unlimited play, issuing a season must ALWAYS mint a new row. The
+// old schema had UNIQUE (published_at) to make a daily scheduler
+// idempotent, which is precisely the constraint that would now stop a
+// player having a second go.
+func TestEveryIssuedSeasonIsANewRow(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	day := time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC)
-	testSeason(t, s, 1, day)
 
-	// A second publish for the same day must return ErrAlreadyPublished
-	// rather than an error or a duplicate row. This is what makes the daily
-	// scheduler safe to run on several instances with no leader election.
-	season := sim.GenerateSeason(2)
-	cal, _ := json.Marshal(season.Calendar)
-	field, _ := json.Marshal(season.Rivals)
-	_, err := s.CreateSeason(ctx, CreateSeasonParams{
-		Seed: 2, SimVersion: sim.Version, Calendar: cal, Field: field,
-		Day: day, ClosesAt: day.Add(24 * time.Hour),
-	})
-	if !errors.Is(err, ErrAlreadyPublished) {
-		t.Fatalf("second publish returned %v, want ErrAlreadyPublished", err)
+	ids := map[int64]bool{}
+	for i := 0; i < 5; i++ {
+		id := testSeason(t, s, int64(i))
+		if ids[id] {
+			t.Fatalf("season id %d issued twice", id)
+		}
+		ids[id] = true
+	}
+
+	// Even the SAME seed twice: the server mints seeds, so a collision is
+	// possible and must not be an error.
+	a, b := testSeason(t, s, 4242), testSeason(t, s, 4242)
+	if a == b {
+		t.Error("the same seed twice produced one row; a second run would be blocked")
 	}
 
 	n, err := s.CountSeasons(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n != 1 {
-		t.Errorf("%d seasons exist for one day, want 1", n)
+	if n != 7 {
+		t.Errorf("%d seasons exist, want 7", n)
 	}
 }
 
 func TestOneRunPerPlayerPerSeason(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	day := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
-	seasonID := testSeason(t, s, 7, day)
+	seasonID := testSeason(t, s, 7)
 
 	playerID := uuid.New()
 	if _, err := s.UpsertPlayer(ctx, playerID, "alice"); err != nil {
@@ -208,8 +203,7 @@ func TestOneRunPerPlayerPerSeason(t *testing.T) {
 func TestLeaderboardOrdering(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	day := time.Date(2026, 9, 5, 0, 0, 0, 0, time.UTC)
-	seasonID := testSeason(t, s, 11, day)
+	seasonID := testSeason(t, s, 11)
 
 	// Points descending, then wins, then podiums, then earliest submission.
 	entries := []struct {
@@ -235,7 +229,7 @@ func TestLeaderboardOrdering(t *testing.T) {
 		}
 	}
 
-	board, err := s.Leaderboard(ctx, seasonID, 10, 0)
+	board, err := s.Leaderboard(ctx, 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,8 +250,7 @@ func TestLeaderboardOrdering(t *testing.T) {
 func TestLeaderboardPaginates(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	day := time.Date(2026, 9, 6, 0, 0, 0, 0, time.UTC)
-	seasonID := testSeason(t, s, 13, day)
+	seasonID := testSeason(t, s, 13)
 
 	for i := 0; i < 5; i++ {
 		id := uuid.New()
@@ -269,7 +262,7 @@ func TestLeaderboardPaginates(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	page, err := s.Leaderboard(ctx, seasonID, 2, 2)
+	page, err := s.Leaderboard(ctx, 2, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,8 +293,7 @@ func TestUpsertPlayerUpdatesName(t *testing.T) {
 func TestRunForPlayerReportsMissing(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	day := time.Date(2026, 9, 7, 0, 0, 0, 0, time.UTC)
-	seasonID := testSeason(t, s, 17, day)
+	seasonID := testSeason(t, s, 17)
 
 	_, err := s.RunForPlayer(ctx, seasonID, uuid.New())
 	if !errors.Is(err, ErrNotFound) {
@@ -309,10 +301,45 @@ func TestRunForPlayerReportsMissing(t *testing.T) {
 	}
 }
 
-func TestSeasonByDateReportsMissing(t *testing.T) {
+func TestSeasonByIDReportsMissing(t *testing.T) {
 	s := newTestStore(t)
-	_, err := s.SeasonByDate(context.Background(), time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
+	_, err := s.SeasonByID(context.Background(), 999999)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("missing season returned %v, want ErrNotFound", err)
+	}
+}
+
+// One row per player, their best run, plus how many they played. Under
+// unlimited play a best-of-N is partly a measure of N, so the board reports
+// the N rather than hiding it.
+func TestLeaderboardShowsEachPlayersBestAndTheirRunCount(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	id := uuid.New()
+	if _, err := s.UpsertPlayer(ctx, id, "grinder"); err != nil {
+		t.Fatal(err)
+	}
+	for i, points := range []int{40, 260, 120} {
+		if _, err := s.SaveRun(ctx, SaveRunParams{
+			SeasonID: testSeason(t, s, int64(500+i)), PlayerID: id,
+			Decisions: []byte(`[]`), Points: points, Result: []byte(`{}`),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	board, err := s.Leaderboard(ctx, 10, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(board) != 1 {
+		t.Fatalf("board has %d rows for one player, want 1", len(board))
+	}
+	if board[0].Points != 260 {
+		t.Errorf("board shows %d points, want the best of 40/260/120", board[0].Points)
+	}
+	if board[0].Runs != 3 {
+		t.Errorf("board shows %d runs, want 3", board[0].Runs)
 	}
 }

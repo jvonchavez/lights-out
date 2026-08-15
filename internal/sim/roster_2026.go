@@ -3,8 +3,9 @@ package sim
 // Grid2026 is the opposition: the eleven real 2026 teams, exactly as they
 // are. They do not draft and they do not vary by seed. Every player, on
 // every seed, races this same field, so a season measures the draft and
-// nothing else -- which is a stronger property for a shared daily seed than
-// the procedurally generated rivals it replaces (docs/Game Design.md).
+// nothing else. That matters more under unlimited play, not less: if the
+// field varied too, a good score could be a soft field rather than a good
+// draft (docs/Game Design.md).
 //
 // Team IDs are the player at 0 and this slice at 1..11, in the order below.
 //

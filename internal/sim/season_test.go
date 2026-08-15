@@ -97,3 +97,81 @@ func TestProfileWeightsSumToOne(t *testing.T) {
 		}
 	}
 }
+
+// The calendar is drawn from a pool of real circuits to a fixed archetype
+// quota. Both halves of that matter: the shape must never vary, and the
+// membership must.
+func TestCalendarMatchesTheQuota(t *testing.T) {
+	want := map[string]int{}
+	total := 0
+	for _, q := range CircuitQuota {
+		want[q.Archetype] = q.Count
+		total += q.Count
+	}
+	if total != RaceCount {
+		t.Fatalf("quota sums to %d races, want %d", total, RaceCount)
+	}
+	for seed := int64(0); seed < 300; seed++ {
+		got := map[string]int{}
+		for _, c := range GenerateSeason(seed).Calendar {
+			got[c.Archetype]++
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("seed %d drew %v, want %v", seed, got, want)
+		}
+	}
+}
+
+func TestEveryCircuitIsReachableAndRealistic(t *testing.T) {
+	for _, q := range CircuitQuota {
+		if len(q.pool) < q.Count {
+			t.Errorf("archetype %q needs %d circuits but its pool has %d", q.Archetype, q.Count, len(q.pool))
+		}
+		// A pool only just big enough would make every calendar nearly the
+		// same, which is the problem the draw exists to solve.
+		if len(q.pool) < q.Count+2 {
+			t.Errorf("archetype %q pool is %d for a quota of %d: too shallow to vary",
+				q.Archetype, len(q.pool), q.Count)
+		}
+		for _, c := range q.pool {
+			if c.Archetype != q.Archetype {
+				t.Errorf("circuit %q is in the %q pool but claims %q", c.Name, q.Archetype, c.Archetype)
+			}
+		}
+	}
+	seen := map[string]bool{}
+	for _, c := range circuitPool {
+		if c.Name == "" {
+			t.Error("a circuit has no name")
+		}
+		if seen[c.Name] {
+			t.Errorf("circuit %q appears twice in the pool", c.Name)
+		}
+		seen[c.Name] = true
+		if _, ok := Profiles[c.Archetype]; !ok {
+			t.Errorf("circuit %q has unknown archetype %q", c.Name, c.Archetype)
+		}
+	}
+}
+
+// Different seeds must produce genuinely different calendars, or the pool
+// depth is doing nothing for replayability.
+func TestDifferentSeedsDrawDifferentCircuits(t *testing.T) {
+	identical := 0
+	for seed := int64(0); seed < 200; seed++ {
+		a, b := GenerateSeason(seed).Calendar, GenerateSeason(seed+9000).Calendar
+		same := true
+		for i := range a {
+			if a[i].Name != b[i].Name {
+				same = false
+				break
+			}
+		}
+		if same {
+			identical++
+		}
+	}
+	if identical > 2 {
+		t.Errorf("%d/200 seed pairs drew an identical calendar", identical)
+	}
+}

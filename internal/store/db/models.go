@@ -29,11 +29,10 @@ type Run struct {
 }
 
 type Season struct {
-	ID          int64              `json:"id"`
-	Seed        int64              `json:"seed"`
-	SimVersion  string             `json:"sim_version"`
-	Calendar    []byte             `json:"calendar"`
-	Field       []byte             `json:"field"`
-	PublishedAt pgtype.Date        `json:"published_at"`
-	ClosesAt    pgtype.Timestamptz `json:"closes_at"`
+	ID         int64              `json:"id"`
+	Seed       int64              `json:"seed"`
+	SimVersion string             `json:"sim_version"`
+	Calendar   []byte             `json:"calendar"`
+	Field      []byte             `json:"field"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }

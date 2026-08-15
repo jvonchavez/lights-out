@@ -126,20 +126,26 @@ export interface SeasonResult {
   share: string;
 }
 
-/** The season descriptor from GET /api/seasons/today. */
+/**
+ * A season issued by POST /api/seasons.
+ *
+ * The seed is minted server-side and never chosen by the client -- a client
+ * that could nominate its own seed could nominate one it had already solved
+ * offline, and the submission would verify perfectly.
+ */
 export interface SeasonDescriptor {
   id: number;
   /** A string, not a number: JS floats lose precision above 2^53. */
   seed: string;
   sim_version: string;
   calendar: Circuit[];
-  /** The 2026 grid. Identical on every seed. */
+  /** The 2026 grid. Identical in every season. */
   field: Team[];
   /** The five team-eras this seed offers, derived from the seed. */
   rolls: TeamEra[];
-  closes_at: string;
 }
 
+/** One all-time row: a player's best season, and how many they have played. */
 export interface LeaderboardEntry {
   rank: number;
   player_id: string;
@@ -148,6 +154,7 @@ export interface LeaderboardEntry {
   wins: number;
   podiums: number;
   dnfs: number;
+  runs: number;
 }
 
 // ---------------------------------------------------------------------------

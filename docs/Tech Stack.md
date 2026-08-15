@@ -68,8 +68,9 @@ under a millisecond.
 honestly, with a queue that exists because the workload genuinely requires one.
 
 **An auth provider.** A UUID in `localStorage` plus a display name. No passwords means no reset flow,
-no email deliverability, no session management, and no PII. Losing your device loses your streak, and
-for a daily browser game that is a reasonable trade rather than a defect.
+no email deliverability, no session management, and no PII. Losing your device loses your
+leaderboard history, and for a browser game with no stakes that is a reasonable trade rather than a
+defect.
 
 **Any LLM.** Nothing here would be improved by one. The LLM gap (#6) needs its own project rather than
 a chatbot bolted onto a racing game.

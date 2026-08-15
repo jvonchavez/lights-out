@@ -1,5 +1,10 @@
-// Command server is the whole backend: the JSON API, the daily season
-// scheduler, and the embedded frontend, in one binary.
+// Command server is the whole backend: the JSON API and the embedded
+// frontend, in one binary.
+//
+// The daily season scheduler is gone. A season is issued on request rather
+// than published once a day, so there is nothing to tick -- and with it went
+// the goroutine, the UNIQUE (published_at) idempotency trick, and the whole
+// question of leader election between instances.
 package main
 
 import (
@@ -15,7 +20,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/jvonmikael/lights-out/internal/api"
-	"github.com/jvonmikael/lights-out/internal/scheduler"
 	"github.com/jvonmikael/lights-out/internal/sim"
 	"github.com/jvonmikael/lights-out/internal/store"
 	"github.com/jvonmikael/lights-out/internal/web"
@@ -66,9 +70,6 @@ func run() error {
 	}
 	log.Info("migrations applied")
 
-	sched := scheduler.New(st, log)
-	go sched.Run(ctx)
-
 	var static http.Handler
 	if web.Built() {
 		static, err = web.Handler()
@@ -81,7 +82,6 @@ func run() error {
 
 	srv := api.NewServer(api.Options{
 		Store:           st,
-		Scheduler:       sched,
 		Logger:          log,
 		Static:          static,
 		SubmitPerMinute: cfg.SubmitPerMinute,

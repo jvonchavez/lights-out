@@ -1,6 +1,7 @@
 # Lights Out
 
-A daily browser game where you build a Formula 1 team out of history and then watch it race.
+A browser game where you build a Formula 1 team out of history and then watch it race. Play as
+many seasons as you like.
 
 The draft is five rolls. Each one lands on a real team-season — 1988 McLaren, 2004 Ferrari, 1967
 Lotus — and from it you take exactly **one** thing: their car, one of their two drivers, their race
@@ -11,9 +12,9 @@ a great principal, and you get one of them. Roll 1988 McLaren and take the MP4/4
 somebody else.
 
 Then your team races the **real 2026 grid** — eleven teams, their actual cars, drivers, engineers
-and principals — over ten rounds, and you find out whether it wins the Constructors' Championship.
-Both of your drivers score for it, which is why the second seat is a decision rather than a
-passenger.
+and principals — over ten real circuits, and you find out whether it wins the Constructors'
+Championship. Both of your drivers score for it, which is why the second seat is a decision rather
+than a passenger.
 
 ```
 Lights Out · Season 454
@@ -21,11 +22,15 @@ P4 of 12 · 124 pts · 2 DNFs
 🏁🏁🏁🏁🥉🏁🏁🏁🥈🏁
 ```
 
-Five clicks and about a minute, or forty-five seconds more if you watch the whole reel. Everyone in
-the world gets the same seed each day: same calendar, same five rolls, same random stream, and the
-same opposition — the field is the actual current grid rather than anything generated, so no day is
-easier than another and the leaderboard measures your draft and nothing else. Free play gives
-unlimited unscored runs, because one season a day is not replayability.
+Five clicks and about a minute, or forty seconds more if you watch the whole reel. Then play
+again: the server issues a new season on request, with a fresh seed, a fresh calendar drawn from
+34 real circuits, and five fresh rolls out of 52 team-eras.
+
+The one thing that never varies is the opposition. The field is the actual current grid rather
+than anything generated, so no season is easier than another and a score measures your draft and
+nothing else. The leaderboard is all-time and keeps your best season — with the number of seasons
+you played shown beside it, because when play is unlimited a best-of-N is partly a measure of N
+and hiding that would make the board a lie.
 
 ## The detail worth leading with
 
@@ -36,10 +41,11 @@ locally with no network round-trips. There is one implementation, so the client 
 disagree about the rules — and a parity test asserts both targets produce byte-identical JSON across
 3,000 seeds.
 
-That is what makes the leaderboard trustworthy. The client posts *only its five pick indices* —
-never a score. `submitRequest` has no score field at all, so a forged number has nowhere to be
-decoded to and is discarded before any code could believe it. The server re-derives the rolls from
-the season's own seed and replays the picks itself, so scores cannot be fabricated.
+That is what makes the leaderboard trustworthy. **The server mints the seed** — a client that
+could nominate its own could nominate one it had already solved offline, and the submission would
+verify perfectly. The client posts *only its five pick indices*, never a score. `submitRequest`
+has no score field at all, so a forged number has nowhere to be decoded to and is discarded before
+any code could believe it. The server replays the picks against the seed it issued.
 
 The legality rule lives in the sim rather than the API, so the browser greys out exactly the items
 the server would refuse. `[0,0,0,0,0]` is five in-range indices and five cars; `[1,2,1,3,4]` is
@@ -51,6 +57,12 @@ enumerable when the simulation runs in your browser, and enumerating them wins t
 of the time against 17.7% for the best scripted line. Wordle is solvable too. The honest claim is
 that the server is the sole authority on what a set of picks is worth — not that nobody can run a
 solver.
+
+**Real circuits, drawn to a quota.** The calendar is ten real tracks out of a pool of 34 — the
+2026 season plus circuits the championship has raced before — but always three power, three
+technical, two balanced and two high-speed. Membership varies and the shape never does. The
+100k-season balance sweep came back *identical* after the fictional circuits were replaced, which
+is what that quota is for.
 
 **Determinism is structural, not hoped for.** Every number in the sim is `int64` fixed-point — the
 roster's 0–99 ratings included — and the normal distribution comes from a sum of twelve uniforms
@@ -71,6 +83,9 @@ make db        # Postgres in a container
 make run       # builds the WASM module, the frontend, and the binary; serves on :8080
 ```
 
+Use `make run` rather than `go build ./cmd/server` — the WASM module is a separate build target,
+and a server rebuilt without it serves a client running a different ruleset from the verifier.
+
 Then open http://localhost:8080.
 
 ```bash
@@ -86,19 +101,24 @@ make simulate SEED=2026 STRATEGY=bestavailable   # play a season in the terminal
 
 ```
 Browser ── React + TS ──▶ sim.wasm (Go)      plays the season locally
-   │                                          (free play never leaves here)
+   │
+   │  POST /api/seasons                             → server mints the seed
    │  POST /api/runs  { season_id, picks[] }         ← never a score
    ▼
 Go binary ── internal/sim (same package, native) ──▶ authoritative result
-   │         daily seed scheduler · embedded frontend (embed.FS)
+   │         embedded frontend (embed.FS)
    ▼
 Postgres ── seasons · players · runs
 ```
 
-One binary carries the API, the scheduler, and the frontend. `UNIQUE (season_id, player_id)` is the
-entire anti-resubmission mechanism — enforced by the database rather than by application logic that
-can race. `UNIQUE (published_at)` on a `date` column makes the daily scheduler idempotent, so
-several instances can run it with no leader election.
+One binary carries the API and the frontend. `UNIQUE (season_id, player_id)` is the entire
+anti-resubmission mechanism — enforced by the database rather than by application logic that can
+race — and it is also what makes unlimited play work: you cannot submit the same season twice, and
+playing again issues a new one.
+
+There is no scheduler. A season used to be a day, published once by a background goroutine and made
+idempotent by `UNIQUE (published_at)`; unlimited play deleted the goroutine, the constraint, and the
+whole question of leader election between instances along with it.
 
 ## What the balance runs found
 

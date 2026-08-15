@@ -22,7 +22,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver, for migrations only
 
@@ -40,9 +39,6 @@ var migrationFS embed.FS
 var (
 	// ErrNotFound means the row does not exist.
 	ErrNotFound = errors.New("store: not found")
-	// ErrAlreadyPublished means a season already exists for that day. The
-	// daily scheduler treats this as success, not failure.
-	ErrAlreadyPublished = errors.New("store: season already published for that day")
 	// ErrAlreadySubmitted means this player already has a run for this
 	// season. The API maps it to 409.
 	ErrAlreadySubmitted = errors.New("store: player already submitted for this season")
@@ -124,65 +120,49 @@ func (s *Store) Migrate() error {
 	return nil
 }
 
-// Season is a published season, decoded from the row.
+// Season is one issued run: a seed the server minted, with the calendar and
+// field it produces. It is no longer a day -- see migration 000002.
 type Season struct {
 	ID         int64
 	Seed       int64
 	SimVersion string
 	Calendar   []byte
 	Field      []byte
-	Day        time.Time
-	ClosesAt   time.Time
+	CreatedAt  time.Time
 }
 
-// CreateSeasonParams are the fields needed to publish a season.
+// CreateSeasonParams are the fields needed to issue a season.
 type CreateSeasonParams struct {
 	Seed       int64
 	SimVersion string
 	Calendar   []byte
 	Field      []byte
-	Day        time.Time
-	ClosesAt   time.Time
 }
 
 func seasonFromRow(r db.Season) Season {
 	return Season{
 		ID: r.ID, Seed: r.Seed, SimVersion: r.SimVersion,
 		Calendar: r.Calendar, Field: r.Field,
-		Day: r.PublishedAt.Time, ClosesAt: r.ClosesAt.Time,
+		CreatedAt: r.CreatedAt.Time,
 	}
 }
 
-// CreateSeason publishes a season, returning ErrAlreadyPublished if one
-// already exists for that day. The INSERT uses ON CONFLICT DO NOTHING, so a
-// conflict yields no row rather than an error -- that is what makes two
-// scheduler instances racing harmless.
+// CreateSeason issues a season. Every call mints a new one -- there is no
+// conflict to handle, because unlimited play means a player can be issued
+// as many as they ask for.
+//
+// This is the ONLY place a seed enters the system, which is what keeps the
+// server authoritative: a client cannot nominate a seed it has already
+// solved offline.
 func (s *Store) CreateSeason(ctx context.Context, p CreateSeasonParams) (Season, error) {
 	row, err := s.q.CreateSeason(ctx, db.CreateSeasonParams{
-		Seed:        p.Seed,
-		SimVersion:  p.SimVersion,
-		Calendar:    p.Calendar,
-		Field:       p.Field,
-		PublishedAt: pgtype.Date{Time: p.Day, Valid: true},
-		ClosesAt:    pgtype.Timestamptz{Time: p.ClosesAt, Valid: true},
+		Seed:       p.Seed,
+		SimVersion: p.SimVersion,
+		Calendar:   p.Calendar,
+		Field:      p.Field,
 	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Season{}, ErrAlreadyPublished
-	}
 	if err != nil {
 		return Season{}, fmt.Errorf("store: creating season: %w", err)
-	}
-	return seasonFromRow(row), nil
-}
-
-// SeasonByDate returns the season published for a given UTC day.
-func (s *Store) SeasonByDate(ctx context.Context, day time.Time) (Season, error) {
-	row, err := s.q.GetSeasonByDate(ctx, pgtype.Date{Time: day, Valid: true})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Season{}, ErrNotFound
-	}
-	if err != nil {
-		return Season{}, fmt.Errorf("store: reading season by date: %w", err)
 	}
 	return seasonFromRow(row), nil
 }
@@ -199,7 +179,7 @@ func (s *Store) SeasonByID(ctx context.Context, id int64) (Season, error) {
 	return seasonFromRow(row), nil
 }
 
-// CountSeasons is used by tests to assert scheduler idempotency.
+// CountSeasons is used by tests.
 func (s *Store) CountSeasons(ctx context.Context) (int64, error) {
 	var n int64
 	err := s.pool.QueryRow(ctx, "SELECT count(*) FROM seasons").Scan(&n)
@@ -294,7 +274,8 @@ func (s *Store) RunForPlayer(ctx context.Context, seasonID int64, playerID uuid.
 	return runFromRow(row), nil
 }
 
-// LeaderboardEntry is one ranked row.
+// LeaderboardEntry is one ranked row: a player's best season, and how many
+// they have played.
 type LeaderboardEntry struct {
 	Rank        int       `json:"rank"`
 	PlayerID    uuid.UUID `json:"player_id"`
@@ -303,14 +284,20 @@ type LeaderboardEntry struct {
 	Wins        int       `json:"wins"`
 	Podiums     int       `json:"podiums"`
 	DNFs        int       `json:"dnfs"`
+	Runs        int       `json:"runs"`
 }
 
-// Leaderboard returns a page of the standings for a season, ranked by
-// points, then wins, then podiums, then earliest submission. Rank accounts
-// for the offset so a second page continues the numbering.
-func (s *Store) Leaderboard(ctx context.Context, seasonID int64, limit, offset int32) ([]LeaderboardEntry, error) {
+// Leaderboard returns a page of the all-time standings -- one row per
+// player, their best season -- ranked by points, then wins, then podiums,
+// then earliest submission. Rank accounts for the offset so a second page
+// continues the numbering.
+//
+// Runs comes back with each row on purpose. When play is unlimited a
+// best-of-N is partly a measure of N, and showing the N is the honest way
+// to present that.
+func (s *Store) Leaderboard(ctx context.Context, limit, offset int32) ([]LeaderboardEntry, error) {
 	rows, err := s.q.GetLeaderboard(ctx, db.GetLeaderboardParams{
-		SeasonID: seasonID, Limit: limit, Offset: offset,
+		Limit: limit, Offset: offset,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("store: reading leaderboard: %w", err)
@@ -325,6 +312,7 @@ func (s *Store) Leaderboard(ctx context.Context, seasonID int64, limit, offset i
 			Wins:        int(r.Wins),
 			Podiums:     int(r.Podiums),
 			DNFs:        int(r.Dnfs),
+			Runs:        int(r.Runs),
 		})
 	}
 	return out, nil

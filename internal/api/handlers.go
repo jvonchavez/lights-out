@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -9,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/jvonmikael/lights-out/internal/scheduler"
 	"github.com/jvonmikael/lights-out/internal/sim"
 	"github.com/jvonmikael/lights-out/internal/store"
 )
@@ -45,8 +46,7 @@ type seasonResponse struct {
 	// Rolls are re-derived from the seed rather than stored, so the client
 	// can render the draft before the WASM module finishes loading and the
 	// server is always the authority on what was offered.
-	Rolls    [sim.RollCount]sim.TeamEra `json:"rolls"`
-	ClosesAt time.Time                  `json:"closes_at"`
+	Rolls [sim.RollCount]sim.TeamEra `json:"rolls"`
 }
 
 func seasonToResponse(row store.Season) seasonResponse {
@@ -57,26 +57,86 @@ func seasonToResponse(row store.Season) seasonResponse {
 		Calendar:   row.Calendar,
 		Field:      row.Field,
 		Rolls:      sim.RollsFor(row.Seed),
-		ClosesAt:   row.ClosesAt,
 	}
 }
 
-// handleTodaySeason returns today's season, publishing it if the scheduler
-// has not yet done so. Publishing here as well as on the ticker means a
-// cold start serves a season on the first request rather than a 404.
-func (s *Server) handleTodaySeason(w http.ResponseWriter, r *http.Request) {
-	day := scheduler.Day(s.now())
-	row, err := s.store.SeasonByDate(r.Context(), day)
+// handleNewSeason issues a season: the server mints a seed, records it, and
+// returns the calendar, field and rolls it produces.
+//
+// THE SEED COMES FROM HERE AND NOWHERE ELSE. That is what keeps the server
+// authoritative under unlimited play -- a client that could nominate its own
+// seed could nominate one it had already solved offline, and the submission
+// would verify perfectly.
+func (s *Server) handleNewSeason(w http.ResponseWriter, r *http.Request) {
+	reqID := RequestIDFrom(r.Context())
+
+	seed, err := newSeed()
+	if err != nil {
+		s.log.Error("minting a seed", "request_id", reqID, "error", err)
+		s.writeError(w, http.StatusInternalServerError, "could not start a season")
+		return
+	}
+
+	season := sim.GenerateSeason(seed)
+	calendar, err := json.Marshal(season.Calendar)
+	if err == nil {
+		var field []byte
+		field, err = json.Marshal(season.Rivals)
+		if err == nil {
+			var row store.Season
+			row, err = s.store.CreateSeason(r.Context(), store.CreateSeasonParams{
+				Seed:       seed,
+				SimVersion: sim.Version,
+				Calendar:   calendar,
+				Field:      field,
+			})
+			if err == nil {
+				s.metrics.SeasonsPublished.Inc()
+				s.writeJSON(w, http.StatusCreated, seasonToResponse(row))
+				return
+			}
+		}
+	}
+	s.log.Error("issuing a season", "request_id", reqID, "error", err)
+	s.writeError(w, http.StatusInternalServerError, "could not start a season")
+}
+
+// handleGetSeason re-reads an issued season, so a reload resumes the same
+// rolls rather than silently starting a different run.
+func (s *Server) handleGetSeason(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "season id must be an integer")
+		return
+	}
+	row, err := s.store.SeasonByID(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		row, err = s.sched.PublishToday(r.Context())
+		s.writeError(w, http.StatusNotFound, "no such season")
+		return
 	}
 	if err != nil {
-		s.log.Error("loading today's season", "request_id", RequestIDFrom(r.Context()), "error", err)
-		s.writeError(w, http.StatusInternalServerError, "could not load today's season")
+		s.log.Error("loading season", "request_id", RequestIDFrom(r.Context()), "error", err)
+		s.writeError(w, http.StatusInternalServerError, "could not load season")
 		return
 	}
 	s.writeJSON(w, http.StatusOK, seasonToResponse(row))
 }
+
+// newSeed draws a seed from crypto/rand, masked below 2^53 so it survives
+// the trip through JavaScript's float64 numbers intact.
+func newSeed() (int64, error) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return 0, err
+	}
+	return int64(binary.BigEndian.Uint64(b[:]) & maxSafeInt), nil
+}
+
+// maxSafeInt is 2^53 - 1: the largest integer JavaScript can represent
+// exactly. Seeds cross to the client as strings anyway, but keeping them
+// inside this range means a client that parses one as a number still gets
+// the season the server will verify.
+const maxSafeInt = 1<<53 - 1
 
 // submitRequest is everything the client may supply.
 //
@@ -150,17 +210,11 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !s.now().Before(season.ClosesAt) {
-		s.metrics.RunsSubmitted.WithLabelValues("closed").Inc()
-		s.writeError(w, http.StatusConflict, "this season is closed")
-		return
-	}
-
 	// A season is verified under the version it was published with, and old
 	// seasons are frozen rather than recomputed (docs/Architecture.md). The
 	// seed alone does not pin a result: if the rules changed, replaying the
-	// same picks produces a different score, so scoring a 1.x season with
-	// 2.x code would silently corrupt a leaderboard mid-day.
+	// same picks produces a different score, so scoring a 2.x season with
+	// 3.x code would silently corrupt the leaderboard.
 	if season.SimVersion != sim.Version {
 		s.metrics.RunsSubmitted.WithLabelValues("stale_version").Inc()
 		s.log.Warn("submission to a season from another ruleset",
@@ -168,7 +222,7 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 			"season_version", season.SimVersion, "sim_version", sim.Version)
 		s.writeError(w, http.StatusConflict,
 			"this season was published under ruleset "+season.SimVersion+
-				"; the game is now on "+sim.Version+". A fresh season starts at midnight UTC.")
+				"; the game is now on "+sim.Version+". Start a new season to play under the current rules.")
 		return
 	}
 
@@ -229,7 +283,7 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 		"outcome", "accepted")
 
 	rank := 0
-	if board, err := s.store.Leaderboard(ctx, season.ID, 1000, 0); err == nil {
+	if board, err := s.store.Leaderboard(ctx, 1000, 0); err == nil {
 		for _, e := range board {
 			if e.PlayerID == playerID {
 				rank = e.Rank
@@ -250,16 +304,13 @@ func (s *Server) handleSubmitRun(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleLeaderboard returns the all-time board: one row per player, their
+// best season, and how many they have played.
 func (s *Server) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		s.writeError(w, http.StatusBadRequest, "season id must be an integer")
-		return
-	}
 	limit := clampQueryInt(r, "limit", 50, 1, 200)
 	offset := clampQueryInt(r, "offset", 0, 0, 100000)
 
-	board, err := s.store.Leaderboard(r.Context(), id, int32(limit), int32(offset))
+	board, err := s.store.Leaderboard(r.Context(), int32(limit), int32(offset))
 	if err != nil {
 		s.log.Error("reading leaderboard", "request_id", RequestIDFrom(r.Context()), "error", err)
 		s.writeError(w, http.StatusInternalServerError, "could not load leaderboard")

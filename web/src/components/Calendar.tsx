@@ -39,7 +39,9 @@ export function Calendar({
             >
               <span className="w-5 text-right font-mono text-xs text-muted">{i + 1}</span>
               <span className={`h-2 w-2 shrink-0 rounded-full ${dotFor[c.archetype]}`} />
-              <span className="flex-1 truncate">{c.name}</span>
+              <span className="flex-1 truncate" data-testid="circuit-name">
+                {c.name}
+              </span>
               <span className="text-xs text-muted">{ARCHETYPE_LABELS[c.archetype]}</span>
               {done && (
                 <span

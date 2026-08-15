@@ -234,8 +234,9 @@ func TestShareStringHasNoSpoilers(t *testing.T) {
 			t.Errorf("share string leaks strategy detail %q:\n%s", leak, res.Share)
 		}
 	}
-	// On a shared daily seed your LINEUP is the strategy, so the default
-	// share must not name any of it. Copying with the build is opt-in.
+	// The default share is a boast anyone can read cold; the team that
+	// produced it is a second, deliberate click. Naming it here would also
+	// make the string unbounded, which the three-line shape forbids.
 	named := []string{res.Lineup.Car.Name, res.Lineup.Engineer.Name,
 		res.Lineup.Principal.Name, res.Lineup.Drivers[0].Name, res.Lineup.Drivers[1].Name}
 	for _, n := range named {

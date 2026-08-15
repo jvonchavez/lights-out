@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   fetchLeaderboard,
-  fetchTodaySeason,
   displayName,
   setDisplayName,
+  startSeason,
   submitRun,
 } from './game/api';
 import {
@@ -14,12 +14,7 @@ import {
   type GameState,
 } from './game/reducer';
 import { loadSim, type SimAPI } from './game/wasm';
-import {
-  ROLL_COUNT,
-  itemsOf,
-  type LeaderboardEntry,
-  type SeasonDescriptor,
-} from './game/types';
+import { ROLL_COUNT, itemsOf, type LeaderboardEntry } from './game/types';
 import { Calendar } from './components/Calendar';
 import { DriverStandings } from './components/DriverStandings';
 import { Leaderboard } from './components/Leaderboard';
@@ -44,20 +39,36 @@ export default function App() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [board, setBoard] = useState<LeaderboardEntry[] | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  /**
+   * Ask the server for a season. Play is unlimited, so this is both the
+   * boot path and the play-again path -- the server mints the seed, which
+   * is what keeps it authoritative when a player can have as many goes as
+   * they like.
+   */
+  const newSeason = useCallback(() => {
+    setStarting(true);
+    setBoard(null);
+    setSubmitError(null);
+    startSeason()
+      .then((season) => dispatch({ type: 'SEASON_LOADED', season }))
+      .catch((e: Error) => dispatch({ type: 'LOAD_FAILED', error: e.message }))
+      .finally(() => setStarting(false));
+  }, []);
 
   // Two independent loads. The season renders the draft immediately; the
-  // WASM module is ~1.25 MB and is only needed once five picks are in.
+  // WASM module is ~1.25 MB and is only needed once five picks are in, so
+  // its download overlaps the draft rather than blocking it.
   useEffect(() => {
-    fetchTodaySeason()
-      .then((season) => dispatch({ type: 'SEASON_LOADED', season, mode: 'daily' }))
-      .catch((e: Error) => dispatch({ type: 'LOAD_FAILED', error: e.message }));
+    newSeason();
     loadSim()
       .then((api) => {
         simRef.current = api;
         setSim(api);
       })
       .catch((e: Error) => dispatch({ type: 'LOAD_FAILED', error: e.message }));
-  }, []);
+  }, [newSeason]);
 
   // The draft is complete: resolve the whole season at once. There are no
   // in-season decisions, so there is nothing to resolve incrementally.
@@ -81,34 +92,6 @@ export default function App() {
     return () => clearTimeout(t);
   }, [state.phase, state.result, state.reelRound]);
 
-  /**
-   * Free play generates its own seed and never posts a run. GenerateSeason
-   * is a pure function compiled into the WASM module, so this needs no
-   * backend at all -- which is why unlimited replays cost nothing.
-   */
-  const playFree = useCallback(() => {
-    const api = simRef.current;
-    if (!api) return;
-    const seed = String(Math.floor(Math.random() * 9_007_199_254_740_991));
-    try {
-      const gen = api.generateSeason(seed);
-      const season: SeasonDescriptor = {
-        id: 0,
-        seed,
-        sim_version: gen.sim_version,
-        calendar: gen.calendar,
-        field: gen.rivals,
-        rolls: gen.rolls,
-        closes_at: '',
-      };
-      setBoard(null);
-      setSubmitError(null);
-      dispatch({ type: 'SEASON_LOADED', season, mode: 'free' });
-    } catch (e) {
-      dispatch({ type: 'LOAD_FAILED', error: (e as Error).message });
-    }
-  }, []);
-
   async function submit() {
     if (!state.season || !state.result) return;
     setSubmitting(true);
@@ -117,7 +100,7 @@ export default function App() {
       setDisplayName(name);
       await submitRun(state.season.id, state.picks, name);
       dispatch({ type: 'SUBMITTED' });
-      setBoard(await fetchLeaderboard(state.season.id));
+      setBoard(await fetchLeaderboard());
     } catch (e) {
       setSubmitError((e as Error).message);
     } finally {
@@ -149,7 +132,7 @@ export default function App() {
   if (!state.season) {
     return (
       <Shell>
-        <p className="text-muted">Loading today&rsquo;s season…</p>
+        <p className="text-muted">Dealing a season…</p>
       </Shell>
     );
   }
@@ -158,7 +141,7 @@ export default function App() {
   const roll = currentRoll(state);
 
   return (
-    <Shell mode={state.mode} version={sim?.version ?? season.sim_version} seed={season.seed}>
+    <Shell version={sim?.version ?? season.sim_version} seasonID={season.id}>
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <main className="space-y-5">
           {state.phase === 'drafting' && roll && (
@@ -188,8 +171,8 @@ export default function App() {
             <>
               <SeasonComplete
                 result={state.result}
-                mode={state.mode}
-                onPlayAgain={playFree}
+                onPlayAgain={newSeason}
+                starting={starting}
                 onSubmit={submit}
                 submitting={submitting}
                 submitted={state.submitted}
@@ -275,26 +258,25 @@ function Draft({
 
 function Shell({
   children,
-  mode,
   version,
-  seed,
+  seasonID,
 }: {
   children: React.ReactNode;
-  mode?: 'daily' | 'free';
   version?: string;
-  seed?: string;
+  seasonID?: number;
 }) {
-  const label = seed ? Number(BigInt(seed) % 1000n) : null;
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       <header className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-lg font-bold tracking-tight">
           Lights Out
-          {label !== null && (
-            <span className="ml-2 text-sm font-normal text-muted">
-              {mode === 'free' ? 'Free play' : `Season ${label}`}
+          {/* The season's own id, not a date. Seasons are issued on request
+              rather than published daily, so there is no "today" to name. */}
+          {seasonID ? (
+            <span className="ml-2 text-sm font-normal text-muted" data-testid="season-label">
+              Season #{seasonID}
             </span>
-          )}
+          ) : null}
         </h1>
         {version && <span className="font-mono text-[11px] text-muted">sim {version}</span>}
       </header>

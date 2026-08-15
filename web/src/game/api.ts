@@ -50,8 +50,22 @@ async function json<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function fetchTodaySeason(): Promise<SeasonDescriptor> {
-  return fetch('/api/seasons/today').then(json<SeasonDescriptor>);
+/**
+ * startSeason asks the server for a new season. Play is unlimited, so this
+ * can be called as often as the player likes -- each call mints a fresh
+ * seed, records it, and returns the calendar, field and rolls it produces.
+ *
+ * The seed is deliberately NOT generated here. The server is the sole
+ * source, which is what keeps it authoritative when a player can have as
+ * many attempts as they want.
+ */
+export function startSeason(): Promise<SeasonDescriptor> {
+  return fetch('/api/seasons', { method: 'POST' }).then(json<SeasonDescriptor>);
+}
+
+/** Re-read an issued season, so a reload resumes the same rolls. */
+export function fetchSeason(id: number): Promise<SeasonDescriptor> {
+  return fetch(`/api/seasons/${id}`).then(json<SeasonDescriptor>);
 }
 
 export interface SubmitResponse {
@@ -66,8 +80,8 @@ export interface SubmitResponse {
 }
 
 /**
- * submitRun posts the card indices and nothing else. The score is
- * deliberately not sent: the server re-derives the deal from the season's
+ * submitRun posts the five pick indices and nothing else. The score is
+ * deliberately not sent: the server re-derives the rolls from the season's
  * seed, replays these picks, and computes the authoritative result itself.
  */
 export function submitRun(
@@ -87,8 +101,9 @@ export function submitRun(
   }).then(json<SubmitResponse>);
 }
 
-export function fetchLeaderboard(seasonId: number): Promise<LeaderboardEntry[]> {
-  return fetch(`/api/seasons/${seasonId}/leaderboard?limit=50`)
+/** The all-time board: one row per player, their best season. */
+export function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
+  return fetch('/api/leaderboard?limit=50')
     .then(json<{ entries: LeaderboardEntry[] }>)
     .then((b) => b.entries);
 }

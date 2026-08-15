@@ -13,11 +13,22 @@ import (
 )
 
 const countRuns = `-- name: CountRuns :one
-SELECT count(*) FROM runs WHERE season_id = $1
+SELECT count(*) FROM runs
 `
 
-func (q *Queries) CountRuns(ctx context.Context, seasonID int64) (int64, error) {
-	row := q.db.QueryRow(ctx, countRuns, seasonID)
+func (q *Queries) CountRuns(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countRuns)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRunsForPlayer = `-- name: CountRunsForPlayer :one
+SELECT count(*) FROM runs WHERE player_id = $1
+`
+
+func (q *Queries) CountRunsForPlayer(ctx context.Context, playerID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countRunsForPlayer, playerID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -68,32 +79,26 @@ func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, erro
 }
 
 const createSeason = `-- name: CreateSeason :one
-INSERT INTO seasons (seed, sim_version, calendar, field, published_at, closes_at)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (published_at) DO NOTHING
-RETURNING id, seed, sim_version, calendar, field, published_at, closes_at
+INSERT INTO seasons (seed, sim_version, calendar, field)
+VALUES ($1, $2, $3, $4)
+RETURNING id, seed, sim_version, calendar, field, created_at
 `
 
 type CreateSeasonParams struct {
-	Seed        int64              `json:"seed"`
-	SimVersion  string             `json:"sim_version"`
-	Calendar    []byte             `json:"calendar"`
-	Field       []byte             `json:"field"`
-	PublishedAt pgtype.Date        `json:"published_at"`
-	ClosesAt    pgtype.Timestamptz `json:"closes_at"`
+	Seed       int64  `json:"seed"`
+	SimVersion string `json:"sim_version"`
+	Calendar   []byte `json:"calendar"`
+	Field      []byte `json:"field"`
 }
 
-// ON CONFLICT DO NOTHING is what makes the daily scheduler idempotent and
-// safe to run on several instances without leader election. It returns NO
-// ROW on conflict, so the caller must fall back to re-reading.
+// One row per issued run. There is no conflict to handle any more: every
+// call mints a new season, which is what unlimited play means.
 func (q *Queries) CreateSeason(ctx context.Context, arg CreateSeasonParams) (Season, error) {
 	row := q.db.QueryRow(ctx, createSeason,
 		arg.Seed,
 		arg.SimVersion,
 		arg.Calendar,
 		arg.Field,
-		arg.PublishedAt,
-		arg.ClosesAt,
 	)
 	var i Season
 	err := row.Scan(
@@ -102,25 +107,28 @@ func (q *Queries) CreateSeason(ctx context.Context, arg CreateSeasonParams) (Sea
 		&i.SimVersion,
 		&i.Calendar,
 		&i.Field,
-		&i.PublishedAt,
-		&i.ClosesAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getLeaderboard = `-- name: GetLeaderboard :many
-SELECT r.player_id, r.points, r.wins, r.podiums, r.dnfs, r.created_at, p.display_name
-FROM runs r
-JOIN players p ON p.id = r.player_id
-WHERE r.season_id = $1
-ORDER BY r.points DESC, r.wins DESC, r.podiums DESC, r.created_at ASC
-LIMIT $2 OFFSET $3
+SELECT b.player_id, b.points, b.wins, b.podiums, b.dnfs, b.created_at, b.runs, p.display_name
+FROM (
+  SELECT DISTINCT ON (player_id)
+         player_id, points, wins, podiums, dnfs, created_at,
+         count(*) OVER (PARTITION BY player_id) AS runs
+  FROM runs
+  ORDER BY player_id, points DESC, wins DESC, podiums DESC, created_at ASC
+) b
+JOIN players p ON p.id = b.player_id
+ORDER BY b.points DESC, b.wins DESC, b.podiums DESC, b.created_at ASC
+LIMIT $1 OFFSET $2
 `
 
 type GetLeaderboardParams struct {
-	SeasonID int64 `json:"season_id"`
-	Limit    int32 `json:"limit"`
-	Offset   int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
 type GetLeaderboardRow struct {
@@ -130,11 +138,19 @@ type GetLeaderboardRow struct {
 	Podiums     int32              `json:"podiums"`
 	Dnfs        int32              `json:"dnfs"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Runs        int64              `json:"runs"`
 	DisplayName string             `json:"display_name"`
 }
 
+// All-time, one row per player: their best season, plus how many they have
+// submitted. The run count is not decoration -- when play is unlimited a
+// best-of-N is partly a measure of N, and showing it is the honest way to
+// present that rather than pretending otherwise.
+//
+// DISTINCT ON needs its own ordering to pick the best row per player, so
+// the outer query re-sorts into leaderboard order.
 func (q *Queries) GetLeaderboard(ctx context.Context, arg GetLeaderboardParams) ([]GetLeaderboardRow, error) {
-	rows, err := q.db.Query(ctx, getLeaderboard, arg.SeasonID, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getLeaderboard, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +165,7 @@ func (q *Queries) GetLeaderboard(ctx context.Context, arg GetLeaderboardParams) 
 			&i.Podiums,
 			&i.Dnfs,
 			&i.CreatedAt,
+			&i.Runs,
 			&i.DisplayName,
 		); err != nil {
 			return nil, err
@@ -188,27 +205,8 @@ func (q *Queries) GetRunForPlayer(ctx context.Context, arg GetRunForPlayerParams
 	return i, err
 }
 
-const getSeasonByDate = `-- name: GetSeasonByDate :one
-SELECT id, seed, sim_version, calendar, field, published_at, closes_at FROM seasons WHERE published_at = $1
-`
-
-func (q *Queries) GetSeasonByDate(ctx context.Context, publishedAt pgtype.Date) (Season, error) {
-	row := q.db.QueryRow(ctx, getSeasonByDate, publishedAt)
-	var i Season
-	err := row.Scan(
-		&i.ID,
-		&i.Seed,
-		&i.SimVersion,
-		&i.Calendar,
-		&i.Field,
-		&i.PublishedAt,
-		&i.ClosesAt,
-	)
-	return i, err
-}
-
 const getSeasonByID = `-- name: GetSeasonByID :one
-SELECT id, seed, sim_version, calendar, field, published_at, closes_at FROM seasons WHERE id = $1
+SELECT id, seed, sim_version, calendar, field, created_at FROM seasons WHERE id = $1
 `
 
 func (q *Queries) GetSeasonByID(ctx context.Context, id int64) (Season, error) {
@@ -220,8 +218,7 @@ func (q *Queries) GetSeasonByID(ctx context.Context, id int64) (Season, error) {
 		&i.SimVersion,
 		&i.Calendar,
 		&i.Field,
-		&i.PublishedAt,
-		&i.ClosesAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }

@@ -26,7 +26,7 @@ async function draft(page: Page, picks: number[] = LEGAL) {
 /**
  * The one end-to-end test that matters: load the page, draft a team out of
  * Formula 1 history against the WASM simulation, watch it race, submit, and
- * appear on the board.
+ * appear on the all-time board.
  */
 test('draft a team, race the season, and appear on the leaderboard', async ({ page }) => {
   const failures: string[] = [];
@@ -38,7 +38,8 @@ test('draft a team, race the season, and appear on the leaderboard', async ({ pa
   await page.goto('/');
 
   // The roll renders from the API before the WASM module has finished
-  // loading: the server is the authority on what was offered.
+  // loading: the server mints the seed and is the authority on what was
+  // offered.
   await expect(page.getByTestId('team-era')).toBeVisible();
   await expect(page.getByTestId('roll-team')).not.toBeEmpty();
   for (let k = 0; k < 5; k++) await expect(page.getByTestId(`item-${k}`)).toBeVisible();
@@ -90,22 +91,38 @@ test('a filled slot closes and the draft cannot go illegal', async ({ page }) =>
   await expect(page.getByTestId('item-1')).toBeEnabled();
 });
 
-test('replaying the same day is rejected for the same browser', async ({ page }) => {
-  // Each Playwright test gets a fresh context, so localStorage starts empty
-  // and this browser is a new player. Both submissions therefore have to
-  // happen inside THIS context for the player UUID to be shared.
+/**
+ * Play is unlimited: the same player can submit as many seasons as they
+ * like, because each one is a separate issued season. What they cannot do
+ * is submit the SAME season twice -- UNIQUE (season_id, player_id) settles
+ * that in the database rather than in application logic that can race.
+ *
+ * Each Playwright test gets a fresh context, so localStorage starts empty
+ * and this browser is one new player throughout.
+ */
+test('a player can submit season after season', async ({ page }) => {
+  // The board is all-time and shared, so scope every assertion to THIS
+  // player's row -- a bare /1 run/ matches whoever else has played.
+  const name = `grinder-${Date.now()}`;
+  const myRow = () =>
+    page.getByTestId('leaderboard').getByTestId('board-row').filter({ hasText: name });
+
   await page.goto('/');
   await draft(page);
-  await page.getByTestId('display-name').fill('replayer');
+  await page.getByTestId('display-name').fill(name);
+  await page.getByTestId('submit-run').click();
+  await expect(page.getByTestId('submitted')).toBeVisible();
+  await expect(myRow()).toHaveText(/1 run/);
+
+  await page.getByTestId('play-again').click();
+  await expect(page.getByText(/Roll 1 of 5/)).toBeVisible({ timeout: 30_000 });
+  await draft(page);
+  await page.getByTestId('display-name').fill(name);
   await page.getByTestId('submit-run').click();
   await expect(page.getByTestId('submitted')).toBeVisible();
 
-  await page.reload();
-  await draft(page);
-  await page.getByTestId('display-name').fill('replayer');
-  await page.getByTestId('submit-run').click();
-
-  await expect(page.getByText(/already submitted/i)).toBeVisible();
+  // The board keeps the BEST season and counts them both.
+  await expect(myRow()).toHaveText(/2 runs/);
 });
 
 test('the default share stays spoiler-free and copying the team is opt-in', async ({ page }) => {
@@ -117,8 +134,8 @@ test('the default share stays spoiler-free and copying the team is opt-in', asyn
 
   expect(names).toHaveLength(ROLLS);
 
-  // On a shared daily seed your LINEUP is the strategy, so naming it gives
-  // the day away and the default copy must not do it.
+  // The default copy is a boast anyone can read cold; the team that
+  // produced it is a second, deliberate click.
   for (const raw of names) {
     const n = raw.trim();
     // Guard: toContain('') is vacuously true and would hide a real leak.
@@ -130,22 +147,62 @@ test('the default share stays spoiler-free and copying the team is opt-in', asyn
 });
 
 /**
- * Free play is the replayability answer, and it needs no backend: the sim
- * generates a season in the browser and the run is simply never posted.
+ * Playing again must actually deal a different season -- a new seed, a new
+ * calendar of real circuits, and a new set of five rolls. If it did not,
+ * "unlimited" would just mean replaying one puzzle.
  */
-test('free play starts a new roll and is not scored', async ({ page }) => {
+test('playing again deals a genuinely different season', async ({ page }) => {
   await page.goto('/');
-  await draft(page);
-  await expect(page.getByTestId('submit-run')).toBeVisible();
+  await expect(page.getByTestId('team-era')).toBeVisible();
 
+  const firstLabel = await page.getByTestId('season-label').innerText();
+  const firstTeam = await page.getByTestId('roll-team').innerText();
+  const firstCircuits = await page.getByTestId('circuit-name').allInnerTexts();
+
+  await draft(page);
   await page.getByTestId('play-again').click();
-
   await expect(page.getByText(/Roll 1 of 5/)).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(/Free play/)).toBeVisible();
 
-  await draft(page);
-  // No leaderboard submission in free play: nothing to forge, nothing to
-  // score, and the daily seed stays the only thing measured.
-  await expect(page.getByTestId('submit-run')).toHaveCount(0);
-  await expect(page.getByText(/not scored/i)).toBeVisible();
+  // A different issued season, so a different id.
+  await expect(page.getByTestId('season-label')).not.toHaveText(firstLabel);
+
+  const secondCircuits = await page.getByTestId('circuit-name').allInnerTexts();
+  expect(secondCircuits).toHaveLength(10);
+  // The calendar is drawn from a pool of real circuits, so two seasons
+  // running should not be identical. Allow the roll to coincide -- 33
+  // team-eras means that happens -- but not the whole calendar.
+  const secondTeam = await page.getByTestId('roll-team').innerText();
+  expect(
+    secondCircuits.join() !== firstCircuits.join() || secondTeam !== firstTeam,
+    'a new season reproduced the previous calendar AND the previous opening roll',
+  ).toBe(true);
+});
+
+/** The calendar must be real circuits, not the old fictional placeholders. */
+test('the calendar is real Formula 1 circuits', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('team-era')).toBeVisible();
+
+  const names = await page.getByTestId('circuit-name').allInnerTexts();
+  expect(names).toHaveLength(10);
+
+  // None of the fictional placeholders survive.
+  for (const gone of ['Vellmar Straight', 'Kestrel Park', 'Sable Bay', 'Mont Aubade']) {
+    expect(names).not.toContain(gone);
+  }
+  // And the pool is recognisable: over a handful of seasons a famous
+  // circuit will turn up. Checking one season would be flaky, so this
+  // asserts every name is drawn from the real pool instead.
+  const real = new Set([
+    'Monza', 'Spa-Francorchamps', 'Baku City', 'Las Vegas Strip', 'Mexico City',
+    'Red Bull Ring', 'Gilles Villeneuve', 'Hockenheimring', 'Paul Ricard',
+    'Monaco', 'Hungaroring', 'Zandvoort', 'Marina Bay', 'Imola', 'Magny-Cours',
+    'Adelaide', 'Valencia Street', 'Shanghai', 'Miami', 'Barcelona-Catalunya',
+    'Madring', 'Bahrain', 'Circuit of the Americas', 'Interlagos', 'Yas Marina',
+    'Sepang', 'Nurburgring', 'Silverstone', 'Suzuka', 'Albert Park', 'Lusail',
+    'Istanbul Park', 'Kyalami', 'Buddh International',
+  ]);
+  for (const n of names) {
+    expect(real.has(n.trim()), `${n} is not a real circuit in the pool`).toBe(true);
+  }
 });

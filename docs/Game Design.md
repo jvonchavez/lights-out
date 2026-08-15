@@ -30,10 +30,15 @@ driver *and* a great principal, and you get one of them. Roll 1988 McLaren and t
 MP4/4, and Senna goes to somebody else. Nothing has a price, and yet everything costs.
 
 **What you are racing** is the real 2026 grid: eleven teams, their actual cars, drivers, race
-engineers and principals. That field is identical on every seed, so no day is easier than
-another and the leaderboard measures your draft and nothing else. It also makes the goal
-legible without a paragraph of explanation — beat Mercedes and Ferrari over ten rounds with a
-team you assembled out of history.
+engineers and principals. That field is identical in every season, so no season is easier than
+another and the result measures your draft and nothing else. It also makes the goal legible
+without a paragraph of explanation — beat Mercedes and Ferrari over ten rounds with a team you
+assembled out of history.
+
+**Play is unlimited.** A season is issued on request rather than published once a day: ask for
+another and you get another, with a fresh seed, a fresh calendar and five fresh rolls. The
+consequence is stated in `_README.md` rather than glossed — a board of best-ever seasons is
+partly a measure of how many you played, so it shows the count beside the score.
 
 **Reliability is what separates the eras.** Performance ratings are relative to a car's own
 field, so the Ferrari 500 that won every race it entered in 1952 reads like it. Reliability is
@@ -68,8 +73,9 @@ team you recognise.
 **The honest cost.** Five rolls of five items is 240 legal drafts, down from 243 — and a
 smaller space than that sounds, because the last roll is usually forced. `docs/_README.md`
 states plainly that the answer space is enumerable; this makes it no better and it is written
-down rather than quietly dropped. What carries replayability instead is the roster: 52
-team-eras means the five teams you are offered are different nearly every run.
+down rather than quietly dropped. What carries replayability instead is the content: 52
+team-eras and a 34-circuit pool mean the five teams you are offered and the ten tracks you
+race them on are different nearly every season.
 
 <details>
 <summary>The five-window card draft, superseded after M4</summary>
@@ -112,7 +118,31 @@ correct and maximally risky, and that tension is the whole game.
 </details>
 </details>
 
-## Circuit profiles
+## Circuits
+
+The circuits are real: the whole 2026 calendar, plus tracks the championship has raced on
+before. The historical entries earn their place for the same reason the roster spans eras — a
+game about drafting the 1967 Lotus should be able to send it to Kyalami — and because the pool
+needs depth in every archetype for the calendar to vary from season to season.
+
+Each is classified by the **character that decides lap time**, not by lap length or top speed.
+These are judgment calls made on downforce level and overtaking difficulty: Zandvoort is
+technical despite its banking because it is a high-downforce circuit where nobody can pass;
+Spa is power despite its famous corners because teams take low-downforce wings there.
+
+| Archetype | Pool | Examples |
+|---|---|---|
+| Power | 9 | Monza, Spa, Baku, Las Vegas, Monza-era Hockenheim |
+| Technical | 8 | Monaco, Hungaroring, Zandvoort, Marina Bay, Imola |
+| Balanced | 10 | Barcelona, Bahrain, Interlagos, Circuit of the Americas |
+| High-speed | 7 | Silverstone, Suzuka, Albert Park, Istanbul Park |
+
+**Every calendar is drawn to a fixed quota**: three power, three technical, two balanced and
+two high-speed, then shuffled. Membership varies and the shape never does. A season of ten
+power circuits would make one rating the whole game, and a fixed ten-circuit calendar made
+every season identical — drawing to a quota from a deep pool gives variety without giving up
+the balance the weights below were tuned against. The 100k-season sweep came back **identical**
+after the circuits changed, which is the evidence that worked.
 
 Each circuit weights the three ratings. Weights sum to 1.0.
 
@@ -123,9 +153,7 @@ Each circuit weights the three ratings. Weights sum to 1.0.
 | Balanced | 0.35 | 0.35 | 0.30 | Mixed |
 | High-speed | 0.30 | 0.35 | 0.35 | Fast sweeping corners |
 
-The calendar is 10 fictional circuits — 3 power, 3 technical, 2 balanced, 2 high-speed — in a
-fixed order that the daily seed shuffles. Fictional names avoid trademark questions entirely and cost
-nothing in fun.
+
 
 ---
 
@@ -301,9 +329,9 @@ anchored to the real constructors' table after twelve rounds: Mercedes 425 down 
 They are identical on every seed. Three things follow, and all three are improvements on the
 procedural rivals they replace:
 
-- **The benchmark is constant.** No seed is easier than another, so the leaderboard measures
-  your draft and nothing else. For a shared daily seed that is strictly better than a random
-  field.
+- **The benchmark is constant.** No season is easier than another, so the result measures your
+  draft and nothing else. With unlimited play that matters more, not less: if the field varied
+  too, a good score could be a soft field rather than a good draft.
 - **The goal is legible cold.** "Beat Red Bull and McLaren with a team you assembled out of
   history" needs no explanation. "Finish above ten procedurally generated archetypes" did.
 - **There is no adaptive-AI trap.** An AI that reacts to the player makes a shared seed unfair,
@@ -318,8 +346,9 @@ nothing to allow and it is the best moment the mechanic produces.
 
 ## Scoring and sharing
 
-Season score is championship points. The leaderboard ranks by points, tie-broken by wins, then by
-podiums.
+Season score is championship points. The leaderboard is all-time and keeps one row per player —
+their best season — ranked by points, tie-broken by wins, then podiums, then earliest
+submission.
 
 The share string is the point of the whole exercise and should be designed with the same care as the
 sim:
@@ -336,9 +365,9 @@ at a glance — including the one race that went wrong.
 The position carries its own denominator. "P2" means nothing to someone who has never played;
 "P2 of 12" is legible cold, which is what makes 82-0's "71-11" work as a boast.
 
-**Naming your parts is opt-in.** On a shared daily seed your build *is* the strategy, so the default
-copy stays spoiler-free and a second button appends the lineup. That is the thing worth
-arguing about, and it should be a deliberate act rather than the default.
+**Naming your team is opt-in.** Every player gets their own rolls, so this is no longer about
+spoiling a shared puzzle. It is that "P2 of 12 with 240 points" is a boast anyone can read
+cold, and the team that produced it is the thing worth a second, deliberate click.
 
 ---
 
@@ -346,13 +375,14 @@ arguing about, and it should be a deliberate act rather than the default.
 
 This is the constraint every rule above must respect, because the leaderboard depends on it.
 
-- A season is a pure function: `(seed, []Decision) → SeasonResult`. No wall-clock time, no map
+- A season is a pure function: `(seed, []int) → SeasonResult`. No wall-clock time, no map
   iteration order, no unseeded randomness, no floating-point that varies by platform.
 - The RNG is explicitly seeded and advances in a fixed order. Adding a new random draw anywhere
   changes every downstream result, so **any change to the draw order is a breaking change** and must
   bump the sim version.
-- Seasons record the sim version they were generated under. Old leaderboards are never re-verified
-  against new sim code; they are frozen.
+- Seasons record the sim version they were issued under. Old runs are never re-verified against
+  new sim code; they are frozen. Changing the circuit pool moved every result and so bumped the
+  version, even though no rule changed — the draw order IS the contract.
 
 Floating-point determinism deserves particular care, since the same Go source compiles to both native
 and WASM. The parity test in M4 exists specifically to catch this, and if a discrepancy appears the

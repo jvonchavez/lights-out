@@ -14,18 +14,7 @@ package sim
 func GenerateSeason(seed int64) Season {
 	rng := NewRNG(seed)
 
-	// Copy the pool before shuffling; the package-level slice must not be
-	// mutated, or one call would change the next.
-	calendar := make([]Circuit, len(circuitPool))
-	copy(calendar, circuitPool)
-	for i := range calendar {
-		calendar[i].Profile = Profiles[calendar[i].Archetype]
-	}
-	// Fisher-Yates, walking down so each index is chosen exactly once.
-	for i := len(calendar) - 1; i > 0; i-- {
-		j := rng.IntN(i + 1)
-		calendar[i], calendar[j] = calendar[j], calendar[i]
-	}
+	calendar := drawCalendar(rng)
 
 	return Season{
 		Seed:       seed,
@@ -34,6 +23,42 @@ func GenerateSeason(seed int64) Season {
 		Rolls:      RollsFor(seed),
 		Rivals:     rivalTeams(),
 	}
+}
+
+// drawCalendar draws a ten-race calendar of real circuits: three power,
+// three technical, two balanced and two high-speed, then shuffles the order.
+//
+// Membership varies from run to run, the SHAPE never does. A run of ten
+// power circuits would make one rating the whole game, and a fixed calendar
+// made every run identical -- drawing to a quota from a deep pool gives
+// variety without giving up the balance the profile weights were tuned
+// against.
+//
+// The quota is walked in its declared order and each pool is drawn from with
+// a partial Fisher-Yates over a COPY. Both details are the determinism
+// contract: the package-level slices must never be mutated, or one call
+// would change the next.
+func drawCalendar(rng *RNG) []Circuit {
+	calendar := make([]Circuit, 0, RaceCount)
+	for _, q := range CircuitQuota {
+		pool := make([]Circuit, len(q.pool))
+		copy(pool, q.pool)
+		for i := 0; i < q.Count; i++ {
+			j := i + rng.IntN(len(pool)-i)
+			pool[i], pool[j] = pool[j], pool[i]
+			c := pool[i]
+			c.Profile = Profiles[c.Archetype]
+			calendar = append(calendar, c)
+		}
+	}
+	// Fisher-Yates over the drawn ten, walking down so each index is chosen
+	// exactly once. Without this the calendar would always run power races
+	// first, and "read the calendar" would stop being a decision.
+	for i := len(calendar) - 1; i > 0; i-- {
+		j := rng.IntN(i + 1)
+		calendar[i], calendar[j] = calendar[j], calendar[i]
+	}
+	return calendar
 }
 
 // rivalTeams is the 2026 grid as entrants, at team IDs 1..TeamCount-1 in

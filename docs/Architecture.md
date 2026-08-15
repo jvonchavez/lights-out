@@ -14,6 +14,7 @@ dual-target simulation and the verification model, not the number of moving part
 │  └───────────────┘   └──────────────────┘   │
 │         │  plays the full season locally     │
 └─────────┼───────────────────────────────────┘
+          │ POST /api/seasons  → the server mints the seed
           │ POST /api/runs  { season_id, picks[] }
           ▼
 ┌─────────────────────────────────────────────┐
@@ -21,8 +22,8 @@ dual-target simulation and the verification model, not the number of moving part
 │   ├── HTTP handlers                          │
 │   ├── internal/sim  ← the same package the   │
 │   │                    WASM build compiles   │
-│   ├── verifier: re-runs decisions natively   │
-│   ├── daily seed scheduler                   │
+│   ├── verifier: re-runs the picks natively   │
+│   ├── seed minting (crypto/rand)             │
 │   └── embedded static assets (embed.FS)      │
 └─────────┬───────────────────────────────────┘
           │ pgx
@@ -83,15 +84,23 @@ number is a problem, not preemptively.
 
 ## Request flow
 
-**Playing.** The browser fetches today's season descriptor (seed, calendar, the 2026 field, and the
-five rolls), loads the WASM module, and runs the entire season client-side once the draft is
-complete. No network round-trip resolves anything. The rolls come from the API as well as from the
-WASM module, so the draft renders before the ~1.25 MB module has finished loading — and the server
-stays the authority on what was offered.
+**Starting.** `POST /api/seasons` mints a seed from `crypto/rand`, records it, and returns the
+descriptor it produces: calendar, the 2026 field, and the five rolls. **This is the only place a
+seed enters the system**, and that is what keeps the server authoritative under unlimited play — a
+client that could nominate its own seed could nominate one it had already solved offline, and the
+submission would verify perfectly.
 
-**Free play** needs no backend at all. `GenerateSeason` is pure and compiled into the WASM module,
-so the client generates its own seed and simply never posts a run. Unlimited replays cost one page
-of JavaScript and no request.
+Seeds are masked below 2^53 and cross as JSON strings, so a client that parses one as a JavaScript
+number still gets the season the server will verify.
+
+**Playing.** The browser loads the WASM module and runs the entire season client-side once the
+draft is complete. No network round-trip resolves anything. The rolls come from the API as well as
+from the WASM module, so the draft renders before the ~1.25 MB module has finished loading — the
+download overlaps the five picks rather than blocking them.
+
+**Playing again** is another `POST /api/seasons`. There is no limit, and `UNIQUE (season_id,
+player_id)` is what makes that safe: a player cannot submit the same season twice, and a new season
+is a new row.
 
 **Submitting.** The client posts `{ season_id, picks[] }` — five integers, never a score. The server
 re-derives the rolls from the season's seed, calls `sim.RunSeason` natively with the submitted
@@ -99,9 +108,12 @@ picks, and computes the authoritative result. The client's own score is not sent
 trusted; there is no field on the request struct for it to occupy.
 
 **Verification** rejects a submission when: the pick count does not match the roll count, any pick is
-outside the five items a roll offers, **the picks do not form a legal team**, the season is closed,
-the season was published under a different sim version, or this player has already submitted for this
-season. Everything the client could lie about is recomputed from the seed.
+outside the five items a roll offers, **the picks do not form a legal team**, the season was issued
+under a different sim version, or this player has already submitted for this season. Everything the
+client could lie about is recomputed from the seed.
+
+There is no "season closed" check any more. A season is not a day, so it never closes; what bounds a
+run is that it can only be submitted once.
 
 The legality check is new and is stronger than a card draft could express. `[0,0,0,0,0]` is five
 in-range indices and five cars; `[1,2,1,3,4]` is three drivers and no car. Both are 400s, and the
@@ -110,13 +122,17 @@ refuse.
 
 What none of this does is make the game unsearchable: 240 legal drafts is trivially enumerable
 client-side, and enumerating them wins the championship 40% of the time against 17.7% for the best
-scripted line. See "What the verification does and does not claim" in `_README.md`; the honest claim
-is that scores cannot be fabricated, not that they cannot be searched for.
+scripted line. Nor does a server-minted seed stop a player *declining* seeds until the rolls are
+good ones. Both limits are stated in "What the verification does and does not claim" in
+`_README.md`; the honest claim is that scores cannot be fabricated, not that they cannot be searched
+for.
 
 **The sim version gate is enforced, not documented.** A season is verified under the version it was
-published with. Replaying the same picks under changed rules produces a different score, so a
+issued under. Replaying the same picks under changed rules produces a different score, so a
 submission to a season from another ruleset is a 409 naming both versions — otherwise a deploy would
-silently corrupt an open leaderboard mid-day.
+silently corrupt the leaderboard. Replacing the fictional circuits with real ones was exactly this
+case: no rule changed, but `GenerateSeason` consumed its RNG differently and every result moved, so
+the version bumped.
 
 ## Data model
 
@@ -125,11 +141,9 @@ CREATE TABLE seasons (
   id           bigserial PRIMARY KEY,
   seed         bigint      NOT NULL,
   sim_version  text        NOT NULL,
-  calendar     jsonb       NOT NULL,   -- circuits and their profiles
+  calendar     jsonb       NOT NULL,   -- the ten drawn circuits and their profiles
   field        jsonb       NOT NULL,   -- the 2026 grid: cars, drivers, staff
-  published_at date        NOT NULL,
-  closes_at    timestamptz NOT NULL,
-  UNIQUE (published_at)
+  created_at   timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE players (
@@ -152,28 +166,41 @@ CREATE TABLE runs (
   UNIQUE (season_id, player_id)
 );
 
-CREATE INDEX runs_leaderboard ON runs (season_id, points DESC, wins DESC, podiums DESC);
+CREATE INDEX runs_alltime ON runs (points DESC, wins DESC, podiums DESC, created_at ASC);
+CREATE INDEX runs_by_player ON runs (player_id);
 ```
 
+**Migration 000002 is what unlimited play cost the schema.** `published_at` and `closes_at` are
+gone, and so is `UNIQUE (published_at)` — a constraint whose entire purpose was to stop a second
+season existing on the same day, which is precisely what unlimited play needs. The leaderboard
+index lost its `season_id` prefix because the board is all-time now.
+
 `seasons.sim_version` is what lets sim rules change without silently invalidating history. A season is
-verified under the version it was published with; old seasons are frozen, never recomputed.
+verified under the version it was issued under; old seasons are frozen, never recomputed.
 
 The `UNIQUE (season_id, player_id)` constraint is the entire anti-resubmission mechanism — one
-submission per player per day, enforced by the database rather than by application logic that can
-race.
+submission per player per season, enforced by the database rather than by application logic that
+can race. It is also what makes unlimited play work: the same season cannot be banked twice, and
+playing again issues a new one.
 
 The schema did not change for the gameplay rebuild. `runs.decisions` was an array of five ints
 before and is an array of five ints now; only their meaning moved, from card indices to item
 indices. There was no migration to write.
 
-## Daily seed scheduler
+## Seeds
 
-An in-process goroutine wakes once an hour, checks whether a season exists for the current UTC day,
-and creates one if not. Deliberately not a separate service, not a Lambda, not a cron container.
+A seed is drawn from `crypto/rand` when a player asks for a season, masked below 2^53 so it
+survives JavaScript's float64 numbers, and stored on the row. That is the whole mechanism.
 
-Seasons are generated from a deterministic function of the date, so the scheduler is idempotent — two
-instances racing produce the same row, and the `UNIQUE (published_at)` constraint settles the tie
-harmlessly. This is what makes it safe to run more than one instance without leader election.
+**What used to be here.** A season was a day: an in-process goroutine woke once an hour, derived a
+seed deterministically from the UTC date, and inserted it. `UNIQUE (published_at)` on a `date`
+column made that idempotent, so several instances could run the ticker with no leader election —
+two racing produced the same row and the constraint settled the tie harmlessly.
+
+It was a nice piece of design and unlimited play deleted all of it. There is no day to publish, no
+ticker to run, and no election to avoid. Recorded here because "we removed a background job and a
+uniqueness constraint" is the useful half of that story: the daily seed was buying a shared puzzle,
+and once play became unlimited it was buying nothing.
 
 ## Observability
 
@@ -182,7 +209,7 @@ harmlessly. This is what makes it safe to run more than one instance without lea
 - **Health:** `/healthz` returns 200 only after a successful Postgres ping.
 - **Metrics:** `/metrics` in Prometheus format via the official client —
   `http_request_duration_seconds` by route and status, `sim_verification_duration_seconds`,
-  `runs_submitted_total` by outcome, and `seasons_published_total`.
+  `runs_submitted_total` by outcome, and `seasons_published_total` (now seasons *issued*).
 
 Verification duration is the metric worth watching: it is CPU-bound work on the request path, and if
 it ever creeps toward the hundreds of milliseconds the answer is to move verification onto a worker

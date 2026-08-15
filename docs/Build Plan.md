@@ -8,9 +8,10 @@ everything downstream is plumbing that can be built with confidence once the rul
 
 > **M0–M4 are done, and then done again.** The input surface was rebuilt twice after M4: first the
 > three budget sliders became a five-window card draft, then the card draft became the pre-season
-> team draft the game now is. `docs/Game Design.md` records both rebuilds and the measurements that
-> forced them. The M4 milestone below is written as it was originally specified; the note at the end
-> of it says what actually shipped.
+> team draft the game now is. A third change followed: the fictional circuits became real ones and
+> the daily seed was removed in favour of unlimited play. `docs/Game Design.md` records each rebuild
+> and the measurements that forced it. The milestones below are written as originally specified;
+> the notes at the end of each say what actually shipped.
 
 ---
 
@@ -71,6 +72,13 @@ start with no manual setup.
 **Done when:** a submission with a hand-edited score in the payload is scored on its decisions and the
 forged number is ignored — proven by a test, not by inspection.
 
+**What shipped, after unlimited play.** The routes are `POST /api/seasons` (which mints the seed —
+the only place one enters the system), `GET /api/seasons/{id}`, `POST /api/runs` and
+`GET /api/leaderboard`. The scheduler goroutine and the `UNIQUE (published_at)` constraint are both
+gone; "season open" is not a validation any more because a season never closes. What survived
+unchanged is the part that mattered: the forged-score test, which now also asserts that five
+in-range indices forming an illegal team are refused.
+
 ---
 
 ## M4 — WASM and frontend *(~5 evenings)*
@@ -90,9 +98,8 @@ The longest milestone and the one carrying the architectural centrepiece.
 **What shipped, after two rebuilds of the input surface.** "Budget allocation" is gone twice over.
 The frontend is a draft screen (a team-season and the five things you can take from it), a race reel
 that plays ten rounds in about forty-five seconds with a constructors bar chart climbing behind it,
-and the result — constructors table, drivers table, share card, leaderboard. Free play was added
-here rather than in a later milestone because it needed no backend at all: `GenerateSeason` is pure
-and already compiled into the WASM module.
+and the result — constructors table, drivers table, share card, leaderboard. A play-again button
+was added here, and later became the whole shape of the game when the daily seed was removed.
 
 The parity test did come first, and it passed on its first run with nothing to debug — the sim was
 already all `int64` fixed-point and Irwin-Hall normals, so the roster's 0–99 ratings introduced no
@@ -158,7 +165,14 @@ have no Terraform than Terraform you cannot explain.
   structural rather than a rating error. Both reverts are recorded.
 - **WASM bundle size.** ~2 MB gzipped is tolerable; materially worse is not. Fallback is TinyGo,
   evaluated only against a measured number.
+- **The daily seed was load-bearing, and then it was not.** M2 and M3 were built around one
+  season a day: a scheduler, a date-keyed uniqueness constraint, a per-season leaderboard, and a
+  closing time. Unlimited play removed all four. *Outcome:* the removal was cheap because none of
+  it had reached into the simulation — `internal/sim` never knew what a day was. The cost was one
+  migration and one honest paragraph about what a best-of-N board can and cannot measure.
 - **Scope creep into a career mode.** Multi-season progression is the obvious next feature and would
-  double the project. It is out of scope, and the daily seed is the reason the current scope works.
-  The team draft makes the temptation worse, not better — a roster of 52 team-eras looks like the
-  start of a career mode. It is not one, and free play is the answer to "I want another go".
+  double the project. It is out of scope. The team draft makes the temptation worse, not better — a
+  roster of 52 team-eras and 34 circuits looks like the start of a career mode. It is not one, and
+  unlimited single seasons are the answer to "I want another go". Note what removing the daily seed
+  did NOT do: it did not add progression, unlocks, or state that survives a run. A season is still
+  a pure function of a seed and five integers.

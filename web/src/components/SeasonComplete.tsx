@@ -10,8 +10,8 @@ export function SeasonComplete({
   error,
   name,
   onNameChange,
-  mode,
   onPlayAgain,
+  starting,
 }: {
   result: SeasonResult;
   onSubmit: () => void;
@@ -20,15 +20,15 @@ export function SeasonComplete({
   error: string | null;
   name: string;
   onNameChange: (v: string) => void;
-  mode: 'daily' | 'free';
   onPlayAgain: () => void;
+  starting: boolean;
 }) {
   const [copied, setCopied] = useState<'plain' | 'build' | null>(null);
 
-  // The default share stays spoiler-free: on a shared daily seed your LINEUP
-  // is the strategy, so naming it gives the day away. Copying with the team
-  // is a separate, deliberate act -- which is what makes an argument about
-  // your picks possible without spoiling anyone who has not played.
+  // The default share names no part of the team. Every player gets their own
+  // rolls now, so this is no longer about spoiling a shared puzzle -- it is
+  // that "P2 of 12 with 240 points" is a boast anyone can read, and the team
+  // that produced it is the thing worth a second, deliberate click.
   const l = result.lineup;
   const withBuild = `${result.share}\n${[
     l.car.name,
@@ -96,12 +96,13 @@ export function SeasonComplete({
       <button
         data-testid="play-again"
         onClick={onPlayAgain}
-        className="mt-4 w-full rounded border border-edge px-4 py-2.5 text-sm font-semibold transition hover:border-muted"
+        disabled={starting}
+        className="mt-4 w-full rounded border border-edge px-4 py-2.5 text-sm font-semibold transition hover:border-muted disabled:opacity-50"
       >
-        Play again on a new roll
+        {starting ? 'Dealing a new season…' : 'Play again'}
       </button>
 
-      {mode === 'daily' && !submitted && (
+      {!submitted && (
         <div className="mt-6 border-t border-edge pt-4">
           <label htmlFor="name" className="text-xs uppercase tracking-widest text-muted">
             Name for the leaderboard
@@ -126,18 +127,11 @@ export function SeasonComplete({
             </button>
           </div>
           <p className="mt-2 text-xs text-muted">
-            Only your five picks are sent. The server re-derives the rolls from the seed, replays
-            the picks and computes the score itself, so the leaderboard measures decisions and
-            nothing else.
+            Only your five picks are sent. The server minted this season&rsquo;s seed and replays
+            the picks against it, so a score cannot be fabricated. The board keeps your best
+            season and shows how many you have played.
           </p>
         </div>
-      )}
-
-      {mode === 'free' && (
-        <p className="mt-6 border-t border-edge pt-4 text-xs text-muted">
-          Free play. This run is not scored &mdash; the leaderboard is the daily seed, where
-          everyone faces the same five rolls.
-        </p>
       )}
 
       {submitted && (

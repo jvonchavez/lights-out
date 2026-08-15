@@ -2,16 +2,17 @@
 
 **Status:** planning · **Started:** 2026-07-28 · **Language:** Go + TypeScript
 
-A browser game where you build an F1 team out of history and then watch it race. The racing itself
-is simulated — you never drive. Every decision happens *before* the season: five rolls, each landing
-on a real team-season, and from each you take exactly one thing — their car, one of their drivers,
-their race engineer, or their team principal. Then your team races the real 2026 grid over ten
-rounds, and you find out whether it wins the Constructors' Championship.
+A browser game where you build an F1 team out of history and then watch it race, as many times as
+you like. The racing itself is simulated — you never drive. Every decision happens *before* the
+season: five rolls, each landing on a real team-season, and from each you take exactly one thing —
+their car, one of their drivers, their race engineer, or their team principal. Then your team races
+the real 2026 grid over ten real circuits, and you find out whether it wins the Constructors'
+Championship.
 
-Everyone in the world gets the same season seed each day. Same calendar, same five rolls, same
-random stream — and the same opposition, because the field is the actual 2026 grid rather than
-anything generated. The luck is identical for everyone, so the leaderboard measures decisions and
-nothing else.
+Play is unlimited. The server issues a season on request — a fresh seed, a fresh calendar drawn
+from 34 real circuits, five fresh rolls out of 52 team-eras — and the only thing that never varies
+is the opposition, because the field is the actual 2026 grid rather than anything generated. No
+season is easier than another, so a score measures the draft and nothing else.
 
 ---
 
@@ -28,15 +29,15 @@ nothing else.
 
 ## MVP definition
 
-A player loads the site, sees today's season, drafts a team across five rolls, watches ten races
-resolve in a reel, and lands on the leaderboard against everyone else who played the same seed.
-Their score is verified server-side before it counts. Free play gives unlimited unscored runs on
-random seeds, because one season a day is not replayability.
+A player loads the site, is issued a season, drafts a team across five rolls, watches ten races
+resolve in a reel, and lands on the all-time leaderboard. Their score is verified server-side
+before it counts. Then they play again, as often as they like.
 
 **In scope:** 10-race calendar, 5 draft rolls over a roster of 52 real team-eras, the 2026 grid as
 a fixed 11-team field, 24 cars with both of a team's drivers scoring for the constructor,
 qualifying and race simulation, mechanical and driver-error retirements, in-season development,
-championship standings, daily seed, verified leaderboard, shareable result string, free play.
+championship standings, server-issued seeds, verified all-time leaderboard, shareable result
+string, unlimited play.
 
 **Out of scope:** mid-season transfers, multi-season careers, pit strategy, tyre compounds, weather,
 accounts, and anything resembling login. Player identity is a UUID in `localStorage` and a display
@@ -79,6 +80,13 @@ module runs locally, so anyone can enumerate every line in milliseconds and subm
 no better than the card draft's 243 and the number is not going to be talked up: an earlier draft of
 this document claimed a cheater "would have to find decisions that genuinely produce a high score,
 which is just playing well", which was true of the continuous sliders and has not been true since.
+
+**Unlimited play adds a second honest limit.** A player who can be issued any number of seasons can
+reroll until the five teams on offer are good ones, and only submit those. The seed comes from the
+server precisely so it cannot be *chosen* — but it can be declined. There is no fix for that which
+keeps play unlimited, so the board reports the number of seasons a player has submitted next to
+their best, and the two numbers are read together. A 260-point season in three attempts is not the
+same achievement as a 260-point season in three hundred.
 
 Measured, because the number is worth knowing: enumerating all 240 wins the championship **40%** of
 the time, against 17.7% for the best scripted strategy and 5.3% for the worst. A solver is

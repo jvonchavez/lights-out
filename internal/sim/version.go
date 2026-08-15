@@ -8,4 +8,10 @@ package sim
 // 3.0.0 replaced in-season development with a draft: five rolls, one item
 // taken from each, and a 24-car field racing the real 2026 grid. Every
 // number in the simulation changed.
-const Version = "3.0.0"
+//
+// 3.1.0 replaced the ten fictional circuits with real ones, drawn from a
+// pool of 34 to a fixed archetype quota. The rules are unchanged, but
+// GenerateSeason consumes the season RNG differently, so every result
+// moved -- which is exactly the case this constant exists to gate. The API
+// shapes did not change, hence a minor bump rather than a major one.
+const Version = "3.1.0"

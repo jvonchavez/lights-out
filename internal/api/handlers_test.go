@@ -18,7 +18,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/jvonmikael/lights-out/internal/scheduler"
 	"github.com/jvonmikael/lights-out/internal/sim"
 	"github.com/jvonmikael/lights-out/internal/store"
 )
@@ -67,18 +66,27 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	sched := scheduler.New(st, log)
-	srv := NewServer(Options{Store: st, Scheduler: sched, Logger: log, SubmitPerMinute: 1000})
+	srv := NewServer(Options{Store: st, Logger: log, SubmitPerMinute: 1000})
 
-	season, err := sched.PublishToday(ctx)
+	env := &testEnv{t: t, srv: srv, handler: srv.Handler(), store: st}
+
+	// Every test needs a season, and the only way to get one is to ask the
+	// server for it -- which is the point: the seed is minted server-side
+	// and a client cannot nominate one.
+	rec := env.do("POST", "/api/seasons", "")
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("issuing a season: %d %s", rec.Code, rec.Body.String())
+	}
+	var season seasonResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &season); err != nil {
+		t.Fatal(err)
+	}
+	seed, err := strconv.ParseInt(season.Seed, 10, 64)
 	if err != nil {
-		t.Fatalf("publishing season: %v", err)
+		t.Fatal(err)
 	}
-
-	return &testEnv{
-		t: t, srv: srv, handler: srv.Handler(), store: st,
-		seasonID: season.ID, seed: season.Seed,
-	}
+	env.seasonID, env.seed = season.ID, seed
+	return env
 }
 
 func (e *testEnv) do(method, path, body string) *httptest.ResponseRecorder {
@@ -168,7 +176,7 @@ func TestForgedScoreIsIgnored(t *testing.T) {
 
 	// And what was PERSISTED must be the computed score too, not just what
 	// was echoed back in the response.
-	board, err := env.store.Leaderboard(context.Background(), env.seasonID, 10, 0)
+	board, err := env.store.Leaderboard(context.Background(), 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,16 +246,40 @@ func TestOneSubmissionPerPlayerPerSeason(t *testing.T) {
 	}
 }
 
-func TestClosedSeasonRejectsSubmission(t *testing.T) {
+// There is no closed-season test any more. Unlimited play has no closing
+// time, so closes_at was dropped from the schema in migration 000002 --
+// what stops a player resubmitting is UNIQUE (season_id, player_id), and
+// what lets them play again is being issued a new season.
+func TestPlayingAgainIssuesAFreshSeason(t *testing.T) {
 	env := newTestEnv(t)
-	// Jump the server's clock past the season's close.
-	env.srv.now = func() time.Time { return time.Now().UTC().Add(48 * time.Hour) }
+	player := uuid.NewString()
 
-	body := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
-		env.seasonID, uuid.NewString(), legalPicksJSON())
-	rec := env.do("POST", "/api/runs", body)
-	if rec.Code != http.StatusConflict {
-		t.Errorf("status %d, want 409 for a closed season: %s", rec.Code, rec.Body.String())
+	first := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
+		env.seasonID, player, legalPicksJSON())
+	if rec := env.do("POST", "/api/runs", first); rec.Code != http.StatusCreated {
+		t.Fatalf("first submission: %d %s", rec.Code, rec.Body.String())
+	}
+	// The same season again is refused by the database constraint.
+	if rec := env.do("POST", "/api/runs", first); rec.Code != http.StatusConflict {
+		t.Errorf("resubmitting the same season: %d, want 409", rec.Code)
+	}
+
+	// A new season, and the same player may play as often as they like.
+	rec := env.do("POST", "/api/seasons", "")
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("issuing a second season: %d", rec.Code)
+	}
+	var next seasonResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &next); err != nil {
+		t.Fatal(err)
+	}
+	if next.ID == env.seasonID {
+		t.Fatal("the second season reused the first's id")
+	}
+	again := fmt.Sprintf(`{"season_id":%d,"player_id":%q,"picks":%s}`,
+		next.ID, player, legalPicksJSON())
+	if rec := env.do("POST", "/api/runs", again); rec.Code != http.StatusCreated {
+		t.Errorf("second run for the same player: %d %s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -269,9 +301,9 @@ func TestRateLimitOnSubmission(t *testing.T) {
 	}
 }
 
-func TestTodaySeasonEndpoint(t *testing.T) {
+func TestSeasonEndpoint(t *testing.T) {
 	env := newTestEnv(t)
-	rec := env.do("GET", "/api/seasons/today", "")
+	rec := env.do("GET", fmt.Sprintf("/api/seasons/%d", env.seasonID), "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
 	}
@@ -317,7 +349,7 @@ func TestLeaderboardEndpoint(t *testing.T) {
 			t.Fatalf("submission %d: %d", i, rec.Code)
 		}
 	}
-	rec := env.do("GET", fmt.Sprintf("/api/seasons/%d/leaderboard", env.seasonID), "")
+	rec := env.do("GET", "/api/leaderboard", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
 	}
@@ -337,14 +369,21 @@ func TestLeaderboardEndpoint(t *testing.T) {
 	}
 }
 
-func TestLeaderboardForUnknownSeasonIsEmpty(t *testing.T) {
+func TestLeaderboardIsEmptyBeforeAnySubmission(t *testing.T) {
 	env := newTestEnv(t)
-	rec := env.do("GET", "/api/seasons/424242/leaderboard", "")
+	rec := env.do("GET", "/api/leaderboard", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
 	if !strings.Contains(rec.Body.String(), `"entries":[]`) {
 		t.Errorf("body = %s, want an empty entries array", rec.Body.String())
+	}
+}
+
+func TestUnknownSeasonIsNotFound(t *testing.T) {
+	env := newTestEnv(t)
+	if rec := env.do("GET", "/api/seasons/424242", ""); rec.Code != http.StatusNotFound {
+		t.Errorf("status %d, want 404", rec.Code)
 	}
 }
 
@@ -376,7 +415,7 @@ func TestHealthzAndMetrics(t *testing.T) {
 
 func TestRequestIDHeaderIsSet(t *testing.T) {
 	env := newTestEnv(t)
-	rec := env.do("GET", "/api/seasons/today", "")
+	rec := env.do("GET", "/api/leaderboard", "")
 	if id := rec.Header().Get("X-Request-Id"); id == "" {
 		t.Error("no X-Request-Id header")
 	} else if _, err := uuid.Parse(id); err != nil {
@@ -388,10 +427,12 @@ func TestSeasonsPublishedCounterIncrements(t *testing.T) {
 	env := newTestEnv(t)
 
 	// Measure the delta rather than an absolute value: newTestEnv already
-	// publishes one season, and asserting a fixed count couples this test
-	// to that setup detail.
+	// issues one season, and asserting a fixed count couples this test to
+	// that setup detail.
 	before := publishedCount(t, env)
-	env.srv.sched.OnPublish()
+	if rec := env.do("POST", "/api/seasons", ""); rec.Code != http.StatusCreated {
+		t.Fatalf("issuing a season: %d", rec.Code)
+	}
 	after := publishedCount(t, env)
 
 	if after != before+1 {
@@ -431,20 +472,17 @@ func grepLines(body, needle string) string {
 
 func TestSeasonFromAnotherRulesetIsRejected(t *testing.T) {
 	// docs/Architecture.md: a season is verified under the version it was
-	// published with, and old seasons are frozen. Replaying the same picks
+	// issued under, and old seasons are frozen. Replaying the same picks
 	// under changed rules produces a different score, so accepting this
-	// would silently corrupt a leaderboard the moment a deploy lands.
+	// would silently corrupt the leaderboard the moment a deploy lands.
 	env := newTestEnv(t)
 	ctx := context.Background()
 
-	day := time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)
 	stale, err := env.store.CreateSeason(ctx, store.CreateSeasonParams{
 		Seed:       env.seed,
 		SimVersion: "0.0.1-ancient",
 		Calendar:   []byte(`[]`),
 		Field:      []byte(`[]`),
-		Day:        day,
-		ClosesAt:   time.Now().UTC().Add(24 * time.Hour),
 	})
 	if err != nil {
 		t.Fatal(err)

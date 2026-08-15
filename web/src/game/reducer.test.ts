@@ -56,11 +56,10 @@ const season: SeasonDescriptor = {
   calendar: [],
   field: [],
   rolls: [era('a'), era('b'), era('c'), era('d'), era('e')],
-  closes_at: '',
 };
 
 function loaded(): GameState {
-  return reducer(initialState, { type: 'SEASON_LOADED', season, mode: 'daily' });
+  return reducer(initialState, { type: 'SEASON_LOADED', season });
 }
 
 function resultWith(n: number): SeasonResult {
@@ -122,9 +121,16 @@ describe('loading', () => {
     expect(currentRoll(s)?.id).toBe('a');
   });
 
-  it('records the mode so free play is never submitted', () => {
-    const s = reducer(initialState, { type: 'SEASON_LOADED', season, mode: 'free' });
-    expect(s.mode).toBe('free');
+  it('replaces any previous run when a new season arrives', () => {
+    let s = loaded();
+    s = reducer(s, { type: 'PICK_ITEM', kind: ITEM_CAR });
+    s = reducer(s, { type: 'CONFIRM_PICK' });
+    // Play is unlimited: asking for another season must reset the draft
+    // rather than carry picks across.
+    s = reducer(s, { type: 'SEASON_LOADED', season });
+    expect(s.picks).toEqual([]);
+    expect(s.roll).toBe(0);
+    expect(s.phase).toBe('drafting');
   });
 
   it('reports a load failure', () => {

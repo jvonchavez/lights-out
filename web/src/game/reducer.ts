@@ -11,12 +11,8 @@ import {
 
 export type Phase = 'loading' | 'drafting' | 'reel' | 'complete' | 'error';
 
-/** Where a run's seed came from, and therefore whether it can be scored. */
-export type Mode = 'daily' | 'free';
-
 export interface GameState {
   phase: Phase;
-  mode: Mode;
   season: SeasonDescriptor | null;
   /** Zero-based index of the roll being decided. */
   roll: number;
@@ -33,7 +29,6 @@ export interface GameState {
 
 export const initialState: GameState = {
   phase: 'loading',
-  mode: 'daily',
   season: null,
   roll: 0,
   pick: null,
@@ -45,7 +40,7 @@ export const initialState: GameState = {
 };
 
 export type Action =
-  | { type: 'SEASON_LOADED'; season: SeasonDescriptor; mode: Mode }
+  | { type: 'SEASON_LOADED'; season: SeasonDescriptor }
   | { type: 'LOAD_FAILED'; error: string }
   | { type: 'PICK_ITEM'; kind: number }
   | { type: 'CONFIRM_PICK' }
@@ -107,7 +102,7 @@ export function reelComplete(state: GameState): boolean {
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'SEASON_LOADED':
-      return { ...initialState, phase: 'drafting', season: action.season, mode: action.mode };
+      return { ...initialState, phase: 'drafting', season: action.season };
 
     case 'LOAD_FAILED':
       return { ...state, phase: 'error', error: action.error };
@@ -155,7 +150,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'RESET':
       return state.season
-        ? { ...initialState, phase: 'drafting', season: state.season, mode: state.mode }
+        ? { ...initialState, phase: 'drafting', season: state.season }
         : initialState;
 
     default:
