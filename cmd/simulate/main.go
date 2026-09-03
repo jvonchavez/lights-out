@@ -15,7 +15,7 @@ import (
 
 func main() {
 	seed := flag.Int64("seed", 1, "season seed")
-	strategy := flag.String("strategy", "adaptive", "player strategy: greedy, cautious, aerofirst, adaptive, first")
+	strategy := flag.String("strategy", "bestavailable", "player strategy: bestavailable, cautious, starpower, carfirst, first")
 	asJSON := flag.Bool("json", false, "emit the full result as JSON")
 	flag.Parse()
 

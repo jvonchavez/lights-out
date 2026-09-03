@@ -56,8 +56,8 @@ test-e2e: ## Playwright play-through against a running server
 balance: ## Run the 100k-season balance sweep
 	go run ./cmd/balance -n 100000 -out balance.csv
 
-simulate: ## Play one season from the CLI (SEED=1 STRATEGY=even)
-	go run ./cmd/simulate -seed $${SEED:-1} -strategy $${STRATEGY:-aerofirst}
+simulate: ## Play one season from the CLI (SEED=1 STRATEGY=bestavailable)
+	go run ./cmd/simulate -seed $${SEED:-1} -strategy $${STRATEGY:-bestavailable}
 
 golden: ## Regenerate the golden fixtures (only after an intended rules change)
 	go test ./internal/sim/ -run TestGolden -update -count=1
