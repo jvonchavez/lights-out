@@ -1,7 +1,7 @@
 # Lights Out — Technology Choices
 
 Each row states what was chosen, why, and what was rejected. The rejections matter more than the
-picks — being able to say why you did *not* use something is what separates a decision from a default.
+picks.
 
 ---
 
@@ -9,7 +9,7 @@ picks — being able to say why you did *not* use something is what separates a 
 
 | Concern | Choice | Why | Rejected |
 |---|---|---|---|
-| Language | **Go 1.23+** | The gap being targeted. Also genuinely correct here: goroutines for batch balance runs, a single static binary, and a WASM target from the same source | Rust (steeper, no resume gap points), C# (no gap closed) |
+| Language | **Go** | The gap being targeted, and genuinely correct here: goroutines for batch balance runs, one static binary, a WASM target from the same source | Rust (steeper, no gap points), C# (no gap closed) |
 | HTTP router | **`net/http` + `ServeMux`** | Go 1.22's mux gained method and path-parameter matching. A router dependency is no longer justified at this scale | chi, gin, echo — all solving a problem the standard library now solves |
 | Postgres driver | **`pgx/v5`** | The de facto Go Postgres driver. Native protocol, real connection pooling, proper `jsonb` and array support | `database/sql` + `lib/pq` (unmaintained, slower) |
 | Query layer | **`sqlc`** | Generates typed Go from hand-written SQL. Keeps SQL visible — which is the skill worth showing — while removing the scanning boilerplate | GORM (hides SQL, fights you at the edges), raw `pgx` (fine, but the boilerplate adds up) |
@@ -35,14 +35,13 @@ picks — being able to say why you did *not* use something is what separates a 
 |---|---|---|
 | Unit | stdlib `testing`, table-driven | Each subsystem — points allocation, reliability, qualifying order — behaves across enumerated cases |
 | Golden fixtures | stdlib + `testdata/*.json` | A committed seed and decision list still produces the exact committed result. **Any unintended rules change fails loudly** |
-| Property-based | **`pgregory.net/rapid`** | Invariants over generated input: points are never negative, championship totals equal the sum of race points, every allocation respects its budget, `RunSeason` is deterministic across 1000 repeats |
+| Property-based | **`pgregory.net/rapid`** | Invariants over generated input: points are never negative, championship totals equal the sum of race points, every draft is legal, `RunSeason` is deterministic across 1000 repeats |
 | Parity | custom harness | Native and WASM builds produce identical output over several thousand seeds. Guards the architectural centrepiece |
 | Integration | **`testcontainers-go`** | Real Postgres in Docker, real migrations, real queries. No mocked database |
 | E2E | **Playwright** | One test: load the page, play a season, submit, appear on the leaderboard |
 
-The golden-fixture and property-based layers together are the direct answer to the automated-testing
-gap (#1) — the highest-frequency gap in `../../Job Applications/_INDEX.md`, named in 12+ folders, and
-currently evidenced only by Postman validation of 30+ endpoints.
+The golden-fixture and property-based layers together answer the automated-testing gap (#1) — the
+highest-frequency gap in `../../Job Applications/_INDEX.md`.
 
 ## Infrastructure
 
@@ -57,20 +56,17 @@ currently evidenced only by Postman validation of 30+ endpoints.
 
 ## Deliberately not used
 
-**Kubernetes.** One stateless container and one database. Adding K8s would be resume theatre, and
-anyone competent enough to be worth impressing would recognise it as such. The Docker/K8s gap (#4)
-stays partially open, and that is the correct trade.
+**Kubernetes.** One stateless container and one database. Adding K8s would be theatre. The
+Docker/K8s gap (#4) stays partially open, and that is the correct trade.
 
-**Redis.** No caching need. Postgres serves a leaderboard of a few thousand rows behind an index in
-under a millisecond.
+**Redis.** No caching need. Postgres serves a few thousand leaderboard rows behind an index in under
+a millisecond.
 
 **Kafka or any broker.** No asynchronous work. `../Tennis Vision/` covers the event-driven gap (#8)
-honestly, with a queue that exists because the workload genuinely requires one.
+with a queue that exists because the workload requires one.
 
-**An auth provider.** A UUID in `localStorage` plus a display name. No passwords means no reset flow,
-no email deliverability, no session management, and no PII. Losing your device loses your
-leaderboard history, and for a browser game with no stakes that is a reasonable trade rather than a
-defect.
+**An auth provider.** A UUID in `localStorage` plus a display name. No passwords, no reset flow, no
+session management, no PII. Losing your device loses your history — a reasonable trade for a browser
+game with no stakes.
 
-**Any LLM.** Nothing here would be improved by one. The LLM gap (#6) needs its own project rather than
-a chatbot bolted onto a racing game.
+**Any LLM.** Nothing here would be improved by one. The LLM gap (#6) needs its own project.
